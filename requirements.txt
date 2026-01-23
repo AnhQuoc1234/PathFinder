@@ -1,0 +1,17 @@
+# Core Frameworks
+langchain>=0.3.0
+langgraph>=0.2.0
+langchain-openai
+langchain-community
+
+# Observability
+opik>=1.0.0
+
+# Interface
+streamlit>=1.38.0
+
+# Memory & Utilities
+chromadb
+python-dotenv
+pandas
+numpy
