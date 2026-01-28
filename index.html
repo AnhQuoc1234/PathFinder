@@ -142,7 +142,7 @@
 
             // 2. Call API
             try {
-                const res = await fetch("https://pathfinder-swgh.onrender.com", {
+                const res = await fetch("https://pathfinder-swgh.onrender.com/chat", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: message, thread_id: threadId })
