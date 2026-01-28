@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PathFinder AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Set Scroll hidden */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white h-screen overflow-hidden flex">
+
+    <div class="w-1/3 flex flex-col border-r border-gray-700 bg-gray-800">
+        <div class="p-4 border-b border-gray-700 shadow-sm">
+            <h1 class="text-xl font-bold text-blue-400">PathFinder 🗺️</h1>
+            <p class="text-xs text-gray-400">AI Learning Companion</p>
+        </div>
+
+        <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+            <div class="flex flex-col space-y-1">
+                <span class="text-xs text-gray-500">AI</span>
+                <div class="bg-gray-700 p-3 rounded-lg rounded-tl-none max-w-[90%] text-sm">
+                    Hello! Tell me what you want to learn today.
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-700 bg-gray-800">
+            <form id="chat-form" class="flex gap-2">
+                <input type="text" id="user-input"
+                    class="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition"
+                    placeholder="E.g., Learn Python in 2 weeks..." required>
+                <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-semibold transition">
+                    Send
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="w-2/3 bg-gray-900 p-8 overflow-y-auto">
+        <div id="plan-container" class="max-w-4xl mx-auto hidden">
+            <div class="mb-8">
+                <span class="bg-blue-900 text-blue-200 text-xs px-2 py-1 rounded uppercase font-bold tracking-wide" id="plan-difficulty">Beginner</span>
+                <h2 class="text-3xl font-bold mt-2" id="plan-goal">Learn Python</h2>
+                <p class="text-gray-400 mt-1" id="plan-duration">Duration: 2 weeks</p>
+            </div>
+
+            <div class="relative border-l border-gray-700 ml-4 space-y-8" id="plan-schedule">
+                </div>
+        </div>
+
+        <div id="empty-state" class="h-full flex flex-col items-center justify-center text-gray-600">
+            <svg class="w-16 h-16 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0121 18.382V7.618a1 1 0 01-1.447-.894L15 7m0 13V7m0 0L9 17"></path></svg>
+            <p>No active plan yet. Start chatting to build one!</p>
+        </div>
+    </div>
+
+    <script>
+        let threadId = null; // Store session ID
+        const API_URL = "https://pathfinder-api.onrender.com/chat";
+
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const chatBox = document.getElementById('chat-box');
+        const planContainer = document.getElementById('plan-container');
+        const emptyState = document.getElementById('empty-state');
+        const planSchedule = document.getElementById('plan-schedule');
+
+        // Add message to chat UI
+        function addMessage(role, text) {
+            const div = document.createElement('div');
+            div.className = "flex flex-col space-y-1 " + (role === 'user' ? "items-end" : "");
+
+            const label = document.createElement('span');
+            label.className = "text-xs text-gray-500";
+            label.innerText = role === 'user' ? "You" : "AI";
+
+            const bubble = document.createElement('div');
+            bubble.className = role === 'user'
+                ? "bg-blue-600 text-white p-3 rounded-lg rounded-tr-none max-w-[90%] text-sm"
+                : "bg-gray-700 text-gray-200 p-3 rounded-lg rounded-tl-none max-w-[90%] text-sm";
+            bubble.innerText = text;
+
+            div.appendChild(label);
+            div.appendChild(bubble);
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Render Plan UI
+        function renderPlan(plan) {
+            if (!plan) return;
+
+            emptyState.classList.add('hidden');
+            planContainer.classList.remove('hidden');
+
+            document.getElementById('plan-goal').innerText = plan.goal || "Learning Plan";
+            document.getElementById('plan-difficulty').innerText = plan.difficulty || "General";
+            document.getElementById('plan-duration').innerText = `Duration: ${plan.total_weeks} weeks`;
+
+            planSchedule.innerHTML = ""; // Clear old data
+
+            plan.schedule.forEach(item => {
+                const html = `
+                    <div class="pl-8 relative">
+                        <div class="absolute -left-[5px] top-1 w-2.5 h-2.5 bg-blue-500 rounded-full ring-4 ring-gray-900"></div>
+                        <h3 class="text-lg font-semibold text-white">Week ${item.week_number}: ${item.topic}</h3>
+                        <p class="text-gray-400 text-sm mt-1 mb-3">${item.description}</p>
+
+                        <div class="bg-gray-800 rounded p-3 mb-3 border border-gray-700">
+                            <h4 class="text-xs font-bold text-blue-400 uppercase mb-2">✅ Tasks</h4>
+                            <ul class="list-disc list-inside text-sm text-gray-300 space-y-1">
+                                ${item.daily_tasks.map(t => `<li>${t}</li>`).join('')}
+                            </ul>
+                        </div>
+                         <div class="bg-gray-800 rounded p-3 border border-gray-700">
+                            <h4 class="text-xs font-bold text-purple-400 uppercase mb-2">📚 Resources</h4>
+                            <div class="flex flex-wrap gap-2">
+                                ${item.resources.map(r => `<span class="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">${r}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                planSchedule.innerHTML += html;
+            });
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // 1. Show user message
+            addMessage('user', message);
+            userInput.value = '';
+
+            // 2. Call API
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message, thread_id: threadId })
+                });
+
+                const data = await res.json();
+
+                // Save Thread ID for context
+                threadId = data.thread_id;
+
+                // 3. Show Bot Response
+                addMessage('ai', data.reply);
+
+                // 4. Update Plan if exists
+                if (data.plan) {
+                    renderPlan(data.plan);
+                }
+
+            } catch (err) {
+                console.error(err);
+                addMessage('ai', "Error connecting to server. Is api.py running?");
+            }
+        });
+    </script>
+</body>
+</html>
