@@ -21,7 +21,7 @@ llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 structured_llm = llm.with_structured_output(RouteDecision)
 
 
-@opik.track(name="Router Node")
+#@opik.track(name="Router Node")
 def route_user_request(user_message: str):
     """
     User Behaviour:.

@@ -1,4 +1,3 @@
-# FILE: agent/planner.py
 import os
 from dotenv import load_dotenv
 
@@ -12,7 +11,7 @@ llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
 structured_llm = llm.with_structured_output(LearningRoadmap)
 
 
-@opik.track(name="Planner Logic")
+#@opik.track(name="Planner Logic")
 def generate_plan(user_input: str):
     """
     Generate a rich learning plan with Tasks and Resources.

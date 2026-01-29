@@ -12,7 +12,7 @@ llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
 structured_llm = llm.with_structured_output(LearningRoadmap)
 
 
-@opik.track(name="Adapter Node")
+#@opik.track(name="Adapter Node")
 def adapt_plan(current_plan: dict, user_feedback: str):
     """
     Refine Based on User Feedback and Plan.

@@ -40,7 +40,7 @@ class ChatResponse(BaseModel):
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     try:
-        # 1. Tạo hoặc lấy Thread ID
+        # Create thread id
         thread_id = request.thread_id or str(uuid.uuid4())
         config = {"configurable": {"thread_id": thread_id}}
 
