@@ -5,7 +5,7 @@ load_dotenv()
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
-import opik
+#import opik
 
 
 #Define Base Model

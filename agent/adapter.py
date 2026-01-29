@@ -5,7 +5,7 @@ load_dotenv()
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from agent.schemas import LearningRoadmap
-import opik
+#import opik
 
 #Initialize LLM
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
