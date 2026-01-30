@@ -5,18 +5,26 @@ from typing import Optional, Dict, Any
 import uuid
 import sys
 import os
+import traceback
+
+from langchain_core.messages import HumanMessage
 
 # Import Agent Graph
 sys.path.append(os.getcwd())
-from agent.graph import app as agent_app
+try:
+    from agent.graph import app as agent_app
+except ImportError:
+    #Fallback to check error
+    print("Module not found.")
+    agent_app = None
 
 # Initialize Api
 app = FastAPI(title="PathFinder AI API")
 
-# Configure CORS so Frontend can be able to call API
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Trong production nên đổi thành domain cụ thể của bạn
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -39,46 +47,49 @@ class ChatResponse(BaseModel):
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
+
+    current_thread_id = request.thread_id or str(uuid.uuid4())
+
     try:
-        # Create thread id
-        thread_id = request.thread_id or str(uuid.uuid4())
-        config = {"configurable": {"thread_id": thread_id}}
+        # Print Log
+        print(f"User Input: {request.message}")
+        print(f"Thread Id: {current_thread_id}")
+
+        if agent_app is None:
+            raise Exception("Agent Graph chưa được load thành công.")
+
+        # Input
+        inputs = {"messages": [HumanMessage(content=request.message)]}
+        config = {"configurable": {"thread_id": current_thread_id}}
 
         # Call Agent
-        final_state = agent_app.invoke(
-            {"user_message": request.message},
-            config=config
-        )
+        print("Call Agent")
+        result = agent_app.invoke(inputs, config=config)
 
-        # Get Result from state
-        dialogue_status = final_state.get("dialogue_status")
-        current_plan = final_state.get("current_plan")
+        # Print raw log for debug
+        print(f"Raw result: {result}")
 
-        # Handle Plan: Convert Pydantic object into dict
-        plan_data = None
-        if current_plan:
-            # Check if object Pydantic use .dict()
-            if hasattr(current_plan, 'dict'):
-                plan_data = current_plan.dict()
-            else:
-                plan_data = current_plan
+        # Handle bot replie
+        bot_reply = "Sorry, I can't answer."  # Giá trị mặc định
 
-        # Create agent response
-        bot_reply = "I've processed your request."
-        if dialogue_status == "generate_plan":
-            bot_reply = "I've crafted a new learning path for you. Check it out on the right! 👉"
-        elif dialogue_status == "update_progress":
-            bot_reply = "I've updated the plan based on your feedback. 🚀"
+        if result and "messages" in result and len(result["messages"]) > 0:
+            last_msg = result["messages"][-1]
+            bot_reply = last_msg.content
 
+        # Return ChatResponse
         return ChatResponse(
-            reply=bot_reply,
-            thread_id=thread_id,
-            plan=plan_data,
-            status=dialogue_status
+            reply=str(bot_reply),
+            thread_id=current_thread_id,
+            status="success"
         )
 
     except Exception as e:
-        print(f"Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print("Crash")
+        traceback.print_exc()
 
-# To run server use: uvicorn api:app --reload
+        # To json for front end not crash
+        return ChatResponse(
+            reply=f"Server Error: {str(e)}",
+            thread_id=current_thread_id,
+            status="error"
+        )
