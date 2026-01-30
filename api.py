@@ -6,16 +6,14 @@ import uuid
 import sys
 import os
 import traceback
-
-from langchain_core.messages import HumanMessage
+import json
 
 # Import Agent Graph
 sys.path.append(os.getcwd())
 try:
     from agent.graph import app as agent_app
 except ImportError:
-    #Fallback to check error
-    print("Module not found.")
+    print("Error: module agent.graph not available")
     agent_app = None
 
 # Initialize Api
@@ -41,7 +39,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     thread_id: str
-    plan: Optional[Dict[str, Any]] = None
+    plan: Optional[Dict[str, Any]] = None  # Đây là nơi chứa Roadmap
     status: str
 
 
@@ -51,43 +49,52 @@ async def chat_endpoint(request: ChatRequest):
     current_thread_id = request.thread_id or str(uuid.uuid4())
 
     try:
-        # Print Log
+        # Log
         print(f"User Input: {request.message}")
-        print(f"Thread Id: {current_thread_id}")
+        print(f"Thread ID: {current_thread_id}")
 
         if agent_app is None:
-            raise Exception("Agent Graph chưa được load thành công.")
+            raise Exception("Agent Graph chưa được load.")
 
         # Input
-        inputs = {"messages": [HumanMessage(content=request.message)]}
+        inputs = {
+            "user_message": request.message,
+            "current_plan": None,  # Khởi tạo rỗng
+            "dialogue_state": "start"
+        }
+
         config = {"configurable": {"thread_id": current_thread_id}}
 
         # Call Agent
         print("Call Agent")
         result = agent_app.invoke(inputs, config=config)
 
-        # Print raw log for debug
-        print(f"Raw result: {result}")
+        # Handle result
+        print(f"Result {result}")
 
-        # Handle bot replie
-        bot_reply = "Sorry, I can't answer."  # Giá trị mặc định
+        final_plan = result.get("current_plan")
+        dialogue_state = result.get("dialogue_state")
 
-        if result and "messages" in result and len(result["messages"]) > 0:
-            last_msg = result["messages"][-1]
-            bot_reply = last_msg.content
+        # Generating reply
+        bot_reply = "Handling request"
+
+        if final_plan:
+            bot_reply = f"Here is the plan I have created {final_plan.get('topic', 'Unknown Topic')}"
+        elif dialogue_state:
+            bot_reply = f"Status {dialogue_state}"
 
         # Return ChatResponse
         return ChatResponse(
-            reply=str(bot_reply),
+            reply=bot_reply,
             thread_id=current_thread_id,
+            plan=final_plan,  # Trả về Json Plan vào đúng chỗ của nó
             status="success"
         )
 
     except Exception as e:
-        print("Crash")
+        print("Crash:")
         traceback.print_exc()
 
-        # To json for front end not crash
         return ChatResponse(
             reply=f"Server Error: {str(e)}",
             thread_id=current_thread_id,
