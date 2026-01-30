@@ -4,5 +4,5 @@ python-dotenv
 langchain
 langchain-openai
 langgraph
-pydantic
+pydantic==1.10.13
 #Opik
