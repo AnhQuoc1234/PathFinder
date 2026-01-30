@@ -5,14 +5,14 @@ load_dotenv()
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from agent.schemas import LearningRoadmap
-#import opik
+import opik
 
 #Initialize LLM
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
 structured_llm = llm.with_structured_output(LearningRoadmap)
 
 
-#@opik.track(name="Adapter Node")
+@opik.track(name="Adapter Node")
 def adapt_plan(current_plan: dict, user_feedback: str):
     """
     Refine Based on User Feedback and Plan.

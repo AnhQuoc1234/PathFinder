@@ -5,13 +5,13 @@ load_dotenv()
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from agent.schemas import LearningRoadmap
-#import opik
+import opik
 
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
 structured_llm = llm.with_structured_output(LearningRoadmap)
 
 
-#@opik.track(name="Planner Logic")
+@opik.track(name="Planner Logic")
 def generate_plan(user_input: str):
     """
     Generate a rich learning plan with Tasks and Resources.

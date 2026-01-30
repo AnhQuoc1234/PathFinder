@@ -8,7 +8,7 @@ import os
 import traceback
 import logging
 
-# Config Log
+# Configure Log
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn")
 
@@ -53,7 +53,7 @@ async def chat_endpoint(request: ChatRequest):
     # Make sure thread id is string
     current_thread_id = request.thread_id or str(uuid.uuid4())
 
-    # Log để debug
+    # Log for debug
     print(f"Receive Message: {request.message}")
 
     # Kiểm tra Agent
@@ -80,7 +80,7 @@ async def chat_endpoint(request: ChatRequest):
         raw_plan = result.get("current_plan")
         final_plan = None
         if raw_plan:
-            # Nếu nó là Pydantic object (do dùng thư viện mới), chuyển thành dict
+            # If pydantic is object change into dict
             if hasattr(raw_plan, "dict"):
                 final_plan = raw_plan.dict()
             elif hasattr(raw_plan, "model_dump"):  # Pydantic v2
@@ -90,11 +90,11 @@ async def chat_endpoint(request: ChatRequest):
 
         # Handle
         dialogue_state = result.get("dialogue_state")
-        bot_reply = "Đã nhận thông tin."
+        bot_reply = "Information Receive."
 
         if final_plan:
-            topic = final_plan.get('topic', 'chủ đề mới')
-            bot_reply = f"I have created new plan for: {topic}"
+            topic = final_plan.get('topic', '')
+            bot_reply = f"I have created new plan: {topic}"
         elif dialogue_state:
             bot_reply = f"AI Respond: {dialogue_state}"
 

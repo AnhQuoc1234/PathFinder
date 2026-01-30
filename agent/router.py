@@ -5,7 +5,7 @@ load_dotenv()
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
-#import opik
+import opik
 
 
 #Define Base Model
@@ -21,7 +21,7 @@ llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 structured_llm = llm.with_structured_output(RouteDecision)
 
 
-#@opik.track(name="Router Node")
+@opik.track(name="Router Node")
 def route_user_request(user_message: str):
     """
     User Behaviour:.
