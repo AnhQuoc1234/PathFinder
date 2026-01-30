@@ -18,6 +18,9 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+
+        /* Hiệu ứng hiển thị nút xóa khi hover */
+        .thread-item:hover .delete-btn { opacity: 1; }
     </style>
 </head>
 <body class="bg-white text-gray-800 h-screen flex flex-col overflow-hidden">
@@ -63,7 +66,7 @@
         <div class="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
             <div class="p-4 border-b border-gray-200 flex items-center justify-between">
                 <span class="font-bold text-gray-700">My Plans</span>
-                <button onclick="startNewChat()" class="text-blue-600 hover:bg-blue-100 p-2 rounded-full transition">
+                <button onclick="startNewChat()" class="text-blue-600 hover:bg-blue-100 p-2 rounded-full transition" title="New Chat">
                     <i class="fa-solid fa-plus"></i>
                 </button>
             </div>
@@ -87,6 +90,7 @@
                         </span>
                     </div>
                 </div>
+                <button onclick="clearAllData()" class="text-xs text-red-400 hover:text-red-600 underline">Reset All Data</button>
             </div>
 
             <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
@@ -96,7 +100,7 @@
                 <div class="max-w-4xl mx-auto relative flex items-center gap-2">
                     <input type="text" id="user-input"
                         class="w-full bg-gray-100 text-gray-800 rounded-full pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-inner"
-                        placeholder="Type your goal (e.g., 'Learn Python in 2 weeks')..."
+                        placeholder="Type your goal (Start your new learning plan now')..."
                         onkeypress="handleEnter(event)">
 
                     <button onclick="sendMessage()"
@@ -109,29 +113,26 @@
     </div>
 
     <script>
-        // Config
-        // API_URL
-        const API_URL = "https://pathfinder-swgh.onrender.com";
+        // Configure
+        const API_URL = "https://pathfinder-swgh.onrender.com"; // Đảm bảo URL này đúng
 
         // State
         let currentThreadId = null;
         let threads = [];
 
-        // Load from Local Storage
+        // Load data
         try {
             const stored = localStorage.getItem('pathfinder_threads');
             if (stored) threads = JSON.parse(stored);
-        } catch (e) {
-            console.error("Lỗi load storage", e);
-            threads = [];
-        }
+        } catch (e) { threads = []; }
 
         document.addEventListener("DOMContentLoaded", () => {
             renderThreadList();
         });
 
+        // Main functions
+
         function startNewChat() {
-            // Create new conversation with random ID
             currentThreadId = "thread_" + Math.random().toString(36).substr(2, 9);
 
             const newThread = {
@@ -148,9 +149,7 @@
 
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML = '';
-
             addMessage("bot", "Hi! I'm your Learning AI. What do you want to learn today?");
-
             renderThreadList();
         }
 
@@ -165,11 +164,40 @@
             addMessage("bot", "Re-connected to plan session.");
         }
 
+        // Delete conversation function
+        function deleteThread(event, id) {
+            event.stopPropagation();
+
+            if (!confirm("Are you sure you want to delete this plan?")) return;
+
+            threads = threads.filter(t => t.id !== id);
+            saveThreads();
+
+            // If delete current conversation -> landing page
+            if (currentThreadId === id) {
+                backToHome();
+                currentThreadId = null;
+            } else {
+                // If delete other conversation need to render list
+                renderThreadList();
+            }
+        }
+
+        function clearAllData() {
+            if(confirm("Warning: This will delete ALL your chat history. Continue?")) {
+                localStorage.removeItem('pathfinder_threads');
+                threads = [];
+                backToHome();
+                renderThreadList();
+            }
+        }
+
         function backToHome() {
             document.getElementById('chat-interface').classList.add('hidden');
             document.getElementById('landing-page').classList.remove('hidden');
         }
 
+        // Chat Logic
         async function sendMessage() {
             const inputField = document.getElementById("user-input");
             const message = inputField.value.trim();
@@ -178,24 +206,20 @@
             addMessage("user", message);
             inputField.value = "";
             showTyping(true);
-
             updateThreadTitle(currentThreadId, message);
 
             try {
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        message: message,
-                        thread_id: currentThreadId
-                    })
+                    body: JSON.stringify({ message: message, thread_id: currentThreadId })
                 });
 
                 const data = await response.json();
                 showTyping(false);
 
                 if (!data || data.status === "error") {
-                    addMessage("bot", "⚠️ Error: " + (data?.reply || "Unknown error"));
+                    addMessage("bot", "⚠️ Error: " + (data?.reply || "Unknown"));
                 } else {
                     if (data.plan) {
                         addMessage("bot", data.reply);
@@ -207,50 +231,73 @@
 
             } catch (error) {
                 showTyping(false);
-                addMessage("bot", "Connection Error. Server might be sleeping (wait 1 min).");
-                console.error(error);
+                addMessage("bot", "❌ Connection Error.");
             }
+        }
+
+        // UI render
+        function renderThreadList() {
+            const list = document.getElementById("thread-list");
+            list.innerHTML = "";
+
+            if (threads.length === 0) {
+                list.innerHTML = `<div class="text-center text-gray-400 text-sm mt-4">No history yet</div>`;
+                return;
+            }
+
+            threads.forEach(t => {
+                const isActive = t.id === currentThreadId;
+                // Add class 'thread-item' too handle hover
+                // Add delete button
+                list.innerHTML += `
+                    <div onclick="loadThread('${t.id}')"
+                        class="thread-item group p-3 rounded-xl cursor-pointer transition flex items-center justify-between gap-3 ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'}">
+
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <i class="fa-regular fa-comments"></i>
+                            <div class="overflow-hidden">
+                                <p class="font-medium text-sm truncate w-32 text-left">${t.title}</p>
+                                <p class="text-xs opacity-70 text-left">${t.date}</p>
+                            </div>
+                        </div>
+
+                        <button onclick="deleteThread(event, '${t.id}')"
+                            class="delete-btn opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition p-1 rounded">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+            });
         }
 
         function addMessage(sender, text) {
             const chatBox = document.getElementById("chat-box");
             const isUser = sender === "user";
-
-            // Split/Join
             const safeText = text ? text.split('\n').join('<br>') : "";
 
             const div = document.createElement("div");
             div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} fade-in`;
-
             div.innerHTML = `
                 <div class="max-w-[80%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
-                    isUser
-                    ? 'bg-blue-600 text-white rounded-br-none'
-                    : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
-                }">
-                    ${safeText}
-                </div>
-            `;
+                    isUser ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                }">${safeText}</div>`;
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
         function renderPlan(plan) {
+            if (!plan || !plan.schedule) return;
             const chatBox = document.getElementById("chat-box");
 
-            if (!plan || !plan.schedule) return;
-
             let tasksHtml = plan.schedule.map(week => {
-                const safeTasks = week.daily_tasks ? week.daily_tasks.map(task => `<li>${task}</li>`).join('') : '';
+                const safeTasks = week.daily_tasks ? week.daily_tasks.map(t => `<li>${t}</li>`).join('') : '';
                 return `
                 <div class="mb-4 last:mb-0 border-l-2 border-blue-200 pl-4">
                     <h4 class="font-bold text-blue-700">Week ${week.week_number}: ${week.topic}</h4>
                     <p class="text-xs text-gray-500 mb-2 italic">${week.description || ''}</p>
-                    <ul class="list-disc list-inside text-gray-700 space-y-1">
-                        ${safeTasks}
-                    </ul>
-                </div>
-            `}).join('');
+                    <ul class="list-disc list-inside text-gray-700 space-y-1">${safeTasks}</ul>
+                </div>`
+            }).join('');
 
             const planCard = document.createElement("div");
             planCard.className = "flex justify-start fade-in w-full";
@@ -260,11 +307,8 @@
                         <h3 class="text-lg font-bold text-gray-800">📅 Learning Roadmap</h3>
                         <span class="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full uppercase font-bold">${plan.difficulty || 'Normal'}</span>
                     </div>
-                    <div class="text-sm space-y-4">
-                        ${tasksHtml}
-                    </div>
-                </div>
-            `;
+                    <div class="text-sm space-y-4">${tasksHtml}</div>
+                </div>`;
             chatBox.appendChild(planCard);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
@@ -272,24 +316,14 @@
         function showTyping(isLoading) {
             const chatBox = document.getElementById("chat-box");
             const existing = document.getElementById("typing-indicator");
-            if (isLoading) {
-                if (!existing) {
-                    const div = document.createElement("div");
-                    div.id = "typing-indicator";
-                    div.className = "flex justify-start fade-in";
-                    div.innerHTML = `
-                        <div class="bg-gray-200 p-3 rounded-2xl rounded-bl-none flex gap-1 items-center">
-                            <span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>
-                            <span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100"></span>
-                            <span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200"></span>
-                        </div>
-                    `;
-                    chatBox.appendChild(div);
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                }
-            } else if (existing) {
-                existing.remove();
-            }
+            if (isLoading && !existing) {
+                const div = document.createElement("div");
+                div.id = "typing-indicator";
+                div.className = "flex justify-start fade-in";
+                div.innerHTML = `<div class="bg-gray-200 p-3 rounded-2xl rounded-bl-none flex gap-1 items-center"><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100"></span><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200"></span></div>`;
+                chatBox.appendChild(div);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } else if (!isLoading && existing) existing.remove();
         }
 
         function saveThreads() {
@@ -305,27 +339,7 @@
             }
         }
 
-        function renderThreadList() {
-            const list = document.getElementById("thread-list");
-            list.innerHTML = "";
-            threads.forEach(t => {
-                const isActive = t.id === currentThreadId;
-                list.innerHTML += `
-                    <div onclick="loadThread('${t.id}')"
-                        class="p-3 rounded-xl cursor-pointer transition flex items-center gap-3 ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'}">
-                        <i class="fa-regular fa-comments"></i>
-                        <div class="overflow-hidden">
-                            <p class="font-medium text-sm truncate">${t.title}</p>
-                            <p class="text-xs opacity-70">${t.date}</p>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function handleEnter(e) {
-            if (e.key === "Enter") sendMessage();
-        }
+        function handleEnter(e) { if (e.key === "Enter") sendMessage(); }
     </script>
 </body>
 </html>
