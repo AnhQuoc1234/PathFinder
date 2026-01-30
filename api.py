@@ -8,7 +8,7 @@ import os
 import traceback
 import logging
 
-# Cấu hình Log để xem trên Render
+# Log
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn")
 
@@ -19,9 +19,9 @@ try:
     from agent.graph import app as loaded_app
 
     agent_app = loaded_app
-    print("✅ LOAD AGENT THÀNH CÔNG!")
+    print("Load Agent Successfully!")
 except Exception as e:
-    print(f"❌ LỖI IMPORT AGENT: {e}")
+    print(f"Agent Error: {e}")
 
 app = FastAPI(title="PathFinder AI API")
 
@@ -34,36 +34,35 @@ app.add_middleware(
 )
 
 
-# --- 1. MODEL INPUT ---
+# --- MODEL INPUT ---
 class ChatRequest(BaseModel):
     message: str
     thread_id: Optional[str] = None
 
 
-# --- 2. MODEL OUTPUT (Đã sửa lỗi Validation) ---
+# --- MODEL OUTPUT  ---
 class ChatResponse(BaseModel):
     reply: str
     thread_id: str
     plan: Optional[Dict[str, Any]] = None
-    # 👇 QUAN TRỌNG: Thêm giá trị mặc định để không bao giờ bị lỗi "Field required"
     status: str = "success"
 
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     current_thread_id = request.thread_id or str(uuid.uuid4())
-    print(f"📩 Nhận message: {request.message} (Thread: {current_thread_id})")
+    print(f"Receive Message {request.message} (Thread: {current_thread_id})")
 
-    # Kiểm tra Agent
+    # Checking Agent
     if agent_app is None:
         return ChatResponse(
-            reply="Lỗi Server: Agent chưa khởi động được.",
+            reply="Server Error, Agent not Respond.",
             thread_id=current_thread_id,
             status="error"
         )
 
     try:
-        # Chuẩn bị input cho Graph
+        # Input
         inputs = {
             "user_message": request.message,
             "current_plan": None,
@@ -71,24 +70,24 @@ async def chat_endpoint(request: ChatRequest):
         }
         config = {"configurable": {"thread_id": current_thread_id}}
 
-        # Gọi Agent
-        print("⏳ Đang xử lý...")
+        # Call Agent
+        print("Handling")
         result = agent_app.invoke(inputs, config=config)
-        print("✅ Agent xử lý xong!")
+        print("Agent finished!")
 
-        # Lấy kết quả
+        # Get Result
         final_plan = result.get("current_plan")
         dialogue_state = result.get("dialogue_state")
 
-        # Tạo câu trả lời
+        # Generate Answer
         bot_reply = "Đã nhận thông tin."
         if final_plan:
-            topic = final_plan.get('topic', 'chủ đề mới')
-            bot_reply = f"Tôi đã tạo lộ trình học cho: {topic}"
+            topic = final_plan.get('topic', 'New Topic')
+            bot_reply = f"I have created plan for topic: {topic}"
         elif dialogue_state:
-            bot_reply = f"AI phản hồi: {dialogue_state}"
+            bot_reply = f"AI Respond: {dialogue_state}"
 
-        # 👇 TRẢ VỀ KẾT QUẢ (Không bao giờ thiếu status nữa)
+        # Chat Response
         return ChatResponse(
             reply=str(bot_reply),
             thread_id=current_thread_id,
@@ -97,12 +96,12 @@ async def chat_endpoint(request: ChatRequest):
         )
 
     except Exception as e:
-        # Bắt lỗi và in ra logs
+        # Catch Error
         error_msg = traceback.format_exc()
-        print(f"❌ CRASH LOGIC: \n{error_msg}")
+        print(f"Crash Logic : \n{error_msg}")
 
         return ChatResponse(
-            reply=f"Xin lỗi, có lỗi xảy ra: {str(e)}",
+            reply=f"Sorry, there is a problem {str(e)}",
             thread_id=current_thread_id,
             status="error"
         )
