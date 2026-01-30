@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PathFinder - AI Learning Companion</title>
+    <title>StudyBot - AI Learning Companion</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -104,42 +104,51 @@
                         <i class="fa-solid fa-paper-plane text-sm"></i>
                     </button>
                 </div>
-                <p class="text-center text-xs text-gray-400 mt-2">AI can make mistakes. Check important info.</p>
             </div>
         </div>
     </div>
 
     <script>
         // Config
-        // Thay URL này bằng URL Render của bạn (Ví dụ: https://pathfinder-xyz.onrender.com)
+        // API_URL
         const API_URL = "https://pathfinder-swgh.onrender.com";
 
-        // State Management
+        // State
         let currentThreadId = null;
-        let threads = JSON.parse(localStorage.getItem('pathfinder_threads')) || [];
+        let threads = [];
 
-        // Initialize
+        // Load from Local Storage
+        try {
+            const stored = localStorage.getItem('pathfinder_threads');
+            if (stored) threads = JSON.parse(stored);
+        } catch (e) {
+            console.error("Lỗi load storage", e);
+            threads = [];
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             renderThreadList();
         });
 
-        // Ui Swap
         function startNewChat() {
-            // Create new conversation
-            currentThreadId = crypto.randomUUID();
+            // Create new conversation with random ID
+            currentThreadId = "thread_" + Math.random().toString(36).substr(2, 9);
 
-            // Save thread into list
-            const newThread = { id: currentThreadId, title: "New Plan", date: new Date().toLocaleDateString() };
+            const newThread = {
+                id: currentThreadId,
+                title: "New Plan",
+                date: new Date().toLocaleDateString()
+            };
+
             threads.unshift(newThread);
             saveThreads();
 
-            // Change view
             document.getElementById('landing-page').classList.add('hidden');
             document.getElementById('chat-interface').classList.remove('hidden');
 
-            // Delete conversation
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML = '';
+
             addMessage("bot", "Hi! I'm your Learning AI. What do you want to learn today?");
 
             renderThreadList();
@@ -149,9 +158,11 @@
             currentThreadId = id;
             document.getElementById('landing-page').classList.add('hidden');
             document.getElementById('chat-interface').classList.remove('hidden');
-
-            // Highlight active thread
             renderThreadList();
+
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML = '';
+            addMessage("bot", "Re-connected to plan session.");
         }
 
         function backToHome() {
@@ -159,22 +170,18 @@
             document.getElementById('landing-page').classList.remove('hidden');
         }
 
-        // Send Message
         async function sendMessage() {
             const inputField = document.getElementById("user-input");
             const message = inputField.value.trim();
             if (!message) return;
 
-            // User message display
             addMessage("user", message);
             inputField.value = "";
             showTyping(true);
 
-            /
             updateThreadTitle(currentThreadId, message);
 
             try {
-                // Get API
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -187,10 +194,9 @@
                 const data = await response.json();
                 showTyping(false);
 
-                if (data.status === "error") {
-                    addMessage("bot", "⚠️ Error: " + data.reply);
+                if (!data || data.status === "error") {
+                    addMessage("bot", "⚠️ Error: " + (data?.reply || "Unknown error"));
                 } else {
-                    // Respond
                     if (data.plan) {
                         addMessage("bot", data.reply);
                         renderPlan(data.plan);
@@ -201,15 +207,17 @@
 
             } catch (error) {
                 showTyping(false);
-                addMessage("bot", "❌ Connection Error. Is the server running?");
+                addMessage("bot", "Connection Error. Server might be sleeping (wait 1 min).");
                 console.error(error);
             }
         }
 
-        // Ui Helper
         function addMessage(sender, text) {
             const chatBox = document.getElementById("chat-box");
             const isUser = sender === "user";
+
+            // Split/Join
+            const safeText = text ? text.split('\n').join('<br>') : "";
 
             const div = document.createElement("div");
             div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} fade-in`;
@@ -220,7 +228,7 @@
                     ? 'bg-blue-600 text-white rounded-br-none'
                     : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
                 }">
-                    ${text.replace(/\n/g, '<br>')}
+                    ${safeText}
                 </div>
             `;
             chatBox.appendChild(div);
@@ -230,15 +238,19 @@
         function renderPlan(plan) {
             const chatBox = document.getElementById("chat-box");
 
-            let tasksHtml = plan.schedule.map(week => `
+            if (!plan || !plan.schedule) return;
+
+            let tasksHtml = plan.schedule.map(week => {
+                const safeTasks = week.daily_tasks ? week.daily_tasks.map(task => `<li>${task}</li>`).join('') : '';
+                return `
                 <div class="mb-4 last:mb-0 border-l-2 border-blue-200 pl-4">
                     <h4 class="font-bold text-blue-700">Week ${week.week_number}: ${week.topic}</h4>
-                    <p class="text-xs text-gray-500 mb-2 italic">${week.description}</p>
+                    <p class="text-xs text-gray-500 mb-2 italic">${week.description || ''}</p>
                     <ul class="list-disc list-inside text-gray-700 space-y-1">
-                        ${week.daily_tasks.map(task => `<li>${task}</li>`).join('')}
+                        ${safeTasks}
                     </ul>
                 </div>
-            `).join('');
+            `}).join('');
 
             const planCard = document.createElement("div");
             planCard.className = "flex justify-start fade-in w-full";
@@ -246,7 +258,7 @@
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-blue-100 w-full max-w-2xl">
                     <div class="flex items-center justify-between mb-4 border-b pb-2">
                         <h3 class="text-lg font-bold text-gray-800">📅 Learning Roadmap</h3>
-                        <span class="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full uppercase font-bold">${plan.difficulty}</span>
+                        <span class="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full uppercase font-bold">${plan.difficulty || 'Normal'}</span>
                     </div>
                     <div class="text-sm space-y-4">
                         ${tasksHtml}
@@ -259,10 +271,9 @@
 
         function showTyping(isLoading) {
             const chatBox = document.getElementById("chat-box");
-            const existingTyping = document.getElementById("typing-indicator");
-
+            const existing = document.getElementById("typing-indicator");
             if (isLoading) {
-                if (!existingTyping) {
+                if (!existing) {
                     const div = document.createElement("div");
                     div.id = "typing-indicator";
                     div.className = "flex justify-start fade-in";
@@ -276,12 +287,11 @@
                     chatBox.appendChild(div);
                     chatBox.scrollTop = chatBox.scrollHeight;
                 }
-            } else {
-                if (existingTyping) existingTyping.remove();
+            } else if (existing) {
+                existing.remove();
             }
         }
 
-        // Local Storage
         function saveThreads() {
             localStorage.setItem('pathfinder_threads', JSON.stringify(threads));
             renderThreadList();
