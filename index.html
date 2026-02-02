@@ -161,7 +161,7 @@
 
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML = '';
-            addMessage("bot", "Re-connected to plan session.");
+            addMessage("bot", "Please Check your connection.");
         }
 
         // Delete conversation function
@@ -219,7 +219,7 @@
                 showTyping(false);
 
                 if (!data || data.status === "error") {
-                    addMessage("bot", "⚠️ Error: " + (data?.reply || "Unknown"));
+                    addMessage("bot", "Error: " + (data?.reply || "Unknown"));
                 } else {
                     if (data.plan) {
                         addMessage("bot", data.reply);
@@ -231,7 +231,7 @@
 
             } catch (error) {
                 showTyping(false);
-                addMessage("bot", "❌ Connection Error.");
+                addMessage("bot", "Connection Error.");
             }
         }
 
@@ -304,7 +304,7 @@
             planCard.innerHTML = `
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-blue-100 w-full max-w-2xl">
                     <div class="flex items-center justify-between mb-4 border-b pb-2">
-                        <h3 class="text-lg font-bold text-gray-800">📅 Learning Roadmap</h3>
+                        <h3 class="text-lg font-bold text-gray-800">Learning Roadmap</h3>
                         <span class="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full uppercase font-bold">${plan.difficulty || 'Normal'}</span>
                     </div>
                     <div class="text-sm space-y-4">${tasksHtml}</div>

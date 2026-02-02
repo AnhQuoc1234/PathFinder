@@ -8,6 +8,14 @@ import os
 import traceback
 import logging
 
+#OPIK
+try:
+    from opik.integrations.langchain import OpikTracer
+    print("Load Opik Tracer Successful")
+except Exception as e:
+    print(f" Import Opik Tracer Error: {e}")
+    OpikTracer = None
+
 # Configure Log
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn")
