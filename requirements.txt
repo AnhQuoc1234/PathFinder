@@ -6,3 +6,5 @@ langchain-community
 langchain-openai
 langgraph
 pydantic
+opik
+pandas
