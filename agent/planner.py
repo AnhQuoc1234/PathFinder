@@ -5,8 +5,8 @@ from pydantic import BaseModel, Field
 
 # Schema
 class LearningResponse(BaseModel):
-    content: str = Field(description="Detailed learning content in Markdown format (headers, bold, lists).")
-    diagram_code: str = Field(description="Mermaid.js code for a mindmap. Must start with 'mindmap'.")
+    content: str = Field(description="Detailed learning content in Markdown format.")
+    diagram_code: str = Field(description="Mermaid.js code for a mindmap.")
 
 
 # Set up LLM
