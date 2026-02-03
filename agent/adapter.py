@@ -8,7 +8,7 @@ from agent.schemas import LearningRoadmap
 import opik
 
 #Initialize LLM
-llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.5)
 structured_llm = llm.with_structured_output(LearningRoadmap)
 
 

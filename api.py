@@ -64,7 +64,7 @@ async def chat_endpoint(request: ChatRequest):
     # Log for debug
     print(f"Receive Message: {request.message}")
 
-    # Kiểm tra Agent
+    # Check Agent
     if agent_app is None:
         return ChatResponse(
             reply="Server Error: Agent is not working.",
@@ -102,7 +102,7 @@ async def chat_endpoint(request: ChatRequest):
 
         if final_plan:
             topic = final_plan.get('topic', '')
-            bot_reply = f"I have created new plan: {topic}"
+            bot_reply = f"Here is the new plan: {topic}"
         elif dialogue_state:
             bot_reply = f"AI Respond: {dialogue_state}"
 

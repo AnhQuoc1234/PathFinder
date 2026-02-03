@@ -17,7 +17,7 @@ class RouteDecision(BaseModel):
 
 
 #Initial LLM
-llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 structured_llm = llm.with_structured_output(RouteDecision)
 
 

@@ -1,45 +1,55 @@
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from agent.schemas import LearningRoadmap
-import opik
+from langchain_core.pydantic_v1 import BaseModel, Field
+from typing import List, Optional
 
-llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
+
+# Define Learning Roadmap
+class LearningRoadmap(BaseModel):
+    topic: str = Field(description="The main subject of the learning plan")
+
+    # Add Difficult
+    difficulty: str = Field(
+        description="Target difficulty level (Beginner, Intermediate, or Advanced)",
+        default="Beginner"
+    )
+
+    schedule: List[str] = Field(description="List of weekly learning goals or steps")
+
+
+# Setup Model & Prompt
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+
+system_prompt = """You are an expert education consultant.
+Create a structured learning roadmap based on the user's request.
+Ensure the output matches the required JSON structure strictly."""
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", system_prompt),
+    ("user", "{input}")
+])
+
+# Connect LLM with structured output
 structured_llm = llm.with_structured_output(LearningRoadmap)
 
+# Chain
+chain = prompt | structured_llm
 
-@opik.track(name="Planner Logic")
+
+# Plan Func
 def generate_plan(user_input: str):
     """
-    Generate a rich learning plan with Tasks and Resources.
+    Generate learning plan. from user input.
+    Return object LearningRoadmap (contain topic, difficulty, schedule).
     """
-
-    system_prompt = """
-    You are an expert Education Planner.
-
-    Your task:
-    1. Analyze the USER REQUEST to identify the TOPIC and DURATION.
-    2. If duration is not specified, default to 2 weeks.
-    3. Determine the DIFFICULTY level (Beginner/Intermediate/Advanced).
-
-    IMPORTANT REQUIREMENTS:
-    - You MUST fill 'daily_tasks' with 3-5 specific bullet points.
-    - You MUST provide 'resources' (keywords for search).
-    - Respect the 'total_weeks' strictly based on user input.
-    """
-
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("user", "User Request: {input}")
-    ])
-
-    chain = prompt | structured_llm
-
-    print(f"Generating rich plan for: {user_input}")
-    # Call chain
-    result = chain.invoke({"input": user_input})
-
-    return result
+    try:
+        result = chain.invoke({"input": user_input})
+        return result.dict()
+    except Exception as e:
+        # Fallback if LLM error
+        print(f"Error generating plan: {e}")
+        return {
+            "topic": "General Learning",
+            "difficulty": "Beginner",
+            "schedule": ["Step 1: Research basics", "Step 2: Practice daily"]
+        }
