@@ -1,24 +1,29 @@
-import re
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any
+from typing import List
 
 
 # Schema
-class LLMOutput(BaseModel):
-    topic: str = Field(description="The main subject of the roadmap")
-    difficulty: str = Field(description="The difficulty level (e.g., Beginner, Intermediate)")
-    schedule: List[str] = Field(description="List of learning steps as strings (e.g., 'Introduction to variables')")
+class Step(BaseModel):
+    week: int = Field(description="Number of the week or day (e.g., 1, 2, 3)")
+    topic: str = Field(description="Content of the topic, without 'Week X:' prefix")
 
 
-# Set up LLM
+# Learning Road map
+class LearningRoadmap(BaseModel):
+    topic: str = Field(description="The main subject")
+    difficulty: str = Field(description="Level")
+    schedule: List[Step] = Field(description="List of structured steps")
+
+
+# Setup LLM
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-structured_llm = llm.with_structured_output(LLMOutput)
+structured_llm = llm.with_structured_output(LearningRoadmap)
 
-system_prompt = """You are an expert education consultant. 
-Create a detailed learning roadmap based on the user's request. 
-Return the schedule as a simple list of strings."""
+system_prompt = """You are an education consultant. 
+Create a detailed learning roadmap.
+IMPORTANT: Break down the schedule into specific weeks/days."""
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", system_prompt),
@@ -28,42 +33,21 @@ prompt = ChatPromptTemplate.from_messages([
 chain = prompt | structured_llm
 
 
-# Main Processing Function
+# Generate plan func
 def generate_plan(user_input: str):
     try:
         print(f"DEBUG: Generating plan for '{user_input}'")
 
-        # Invoke AI
+        # Call AI
         result = chain.invoke({"input": user_input})
 
-        raw_schedule = result.schedule
-        formatted_schedule = []
+        final_plan = result.model_dump()
 
-        # Iterate through the list and clean up the text
-        for i, step in enumerate(raw_schedule, 1):
-            # Regex to remove prefixes like "Week 1:", "Day 1:", "Step 1."
-            # Example: "Week 1: Introduction" -> "Introduction"
-            clean_text = re.sub(r'^(Week|Day|Step|Tuần)\s*\d+[:\.]?\s*', '', step, flags=re.IGNORECASE).strip()
-
-            # Create a structured object for the Frontend
-            formatted_schedule.append({
-                "week": i,  # Frontend uses this integer to display the step number
-                "topic": clean_text,  # Cleaned content (removing duplicates)
-                "content": clean_text  # Backup key
-            })
-
-        print("DEBUG: Plan generated successfully")
-
-        # Return the final Dict (matches AgentState structure)
-        return {
-            "topic": result.topic,
-            "difficulty": result.difficulty,
-            "schedule": formatted_schedule  # Returns List[Dict]
-        }
+        print("DEBUG: Plan generated with STRICT schema")
+        return final_plan
 
     except Exception as e:
         print(f"Planner Error: {e}")
-        # Return empty structure on error to prevent crashes
         return {
             "topic": "Error",
             "difficulty": "Unknown",
