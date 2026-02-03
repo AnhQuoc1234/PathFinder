@@ -1,25 +1,30 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StudyBot - AI Learning Companion</title>
+    <title>PathFinder AI - Learning Companion</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
         body { font-family: 'Poppins', sans-serif; }
-        .fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Custom Scrollbar */
+        /* Animation for new messages */
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Custom Scrollbar Styling */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
 
-        /* Delete animation */
+        /* Show delete button on hover */
         .thread-item:hover .delete-btn { opacity: 1; }
     </style>
 </head>
@@ -34,24 +39,24 @@
         <div class="max-w-4xl grid md:grid-cols-2 gap-12 items-center">
             <div class="text-left space-y-6">
                 <h1 class="text-5xl font-bold leading-tight text-gray-900">
-                    Our AI will help you <br>
-                    with your <span class="text-blue-600">studies 🎓</span>
+                    Your Personal <br>
+                    <span class="text-blue-600">AI Tutor 🎓</span>
                 </h1>
                 <p class="text-gray-500 text-lg border-l-4 border-yellow-400 pl-4">
-                    Get help with any kind of learning plan - from a high school essay to a Python roadmap.
+                    Generate detailed learning roadmaps for any subject. From Coding to Cooking.
                 </p>
                 <button onclick="startNewChat()"
                     class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold py-4 px-8 rounded-full shadow-lg transition transform hover:scale-105 flex items-center gap-2">
-                    START CHAT <span class="bg-red-500 text-xs rounded-full px-2 py-0.5 ml-1">1</span>
+                    Start Learning <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
 
             <div class="relative hidden md:block">
                 <div class="bg-blue-50 rounded-[3rem] p-10 relative">
                     <div class="bg-blue-600 text-white p-8 rounded-[2rem] shadow-2xl relative z-10 w-64 h-64 flex flex-col items-center justify-center mx-auto">
-                        <i class="fa-solid fa-face-smile text-6xl mb-4"></i>
+                        <i class="fa-solid fa-graduation-cap text-6xl mb-4"></i>
                         <div class="bg-white text-gray-800 px-4 py-2 rounded-xl text-sm font-medium shadow-md absolute -bottom-4 -right-8 animate-bounce">
-                            👋 Hello, I'm PathFinder!
+                            👋 Ready to help!
                         </div>
                     </div>
                     <div class="absolute top-4 right-4 w-4 h-4 bg-blue-200 rounded-full"></div>
@@ -66,14 +71,16 @@
         <div class="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
             <div class="p-4 border-b border-gray-200 flex items-center justify-between">
                 <span class="font-bold text-gray-700">My Plans</span>
-                <button onclick="startNewChat()" class="text-blue-600 hover:bg-blue-100 p-2 rounded-full transition" title="New Chat">
+                <button onclick="startNewChat()" class="text-blue-600 hover:bg-blue-100 w-8 h-8 flex items-center justify-center rounded-full transition" title="New Chat">
                     <i class="fa-solid fa-plus"></i>
                 </button>
             </div>
+
             <div id="thread-list" class="flex-1 overflow-y-auto p-2 space-y-2">
                 </div>
-            <button onclick="backToHome()" class="p-4 text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2 border-t">
-                <i class="fa-solid fa-arrow-left"></i> Back to Home
+
+            <button onclick="backToHome()" class="p-4 text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2 border-t bg-gray-50 hover:bg-gray-100 transition">
+                <i class="fa-solid fa-house"></i> Home
             </button>
         </div>
 
@@ -90,7 +97,7 @@
                         </span>
                     </div>
                 </div>
-                <button onclick="clearAllData()" class="text-xs text-red-400 hover:text-red-600 underline">Reset All Data</button>
+                <button onclick="clearAllData()" class="text-xs text-red-400 hover:text-red-600 hover:underline">Clear History</button>
             </div>
 
             <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
@@ -100,7 +107,7 @@
                 <div class="max-w-4xl mx-auto relative flex items-center gap-2">
                     <input type="text" id="user-input"
                         class="w-full bg-gray-100 text-gray-800 rounded-full pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-inner"
-                        placeholder="Type your goal"
+                        placeholder="What do you want to learn today?"
                         onkeypress="handleEnter(event)">
 
                     <button onclick="sendMessage()"
@@ -113,14 +120,15 @@
     </div>
 
     <script>
-        // Configure
-        const API_URL = "https://pathfinder-swgh.onrender.com"; // Đảm bảo URL này đúng
+        // --- CONFIGURATION ---
+        const API_URL = "https://pathfinder-swgh.onrender.com"; // Your Render Backend URL
 
-        // State
+        // --- STATE MANAGEMENT ---
         let currentThreadId = null;
         let threads = [];
 
-        // Load data
+        // --- INITIALIZATION ---
+        // Load threads from LocalStorage on startup
         try {
             const stored = localStorage.getItem('pathfinder_threads');
             if (stored) threads = JSON.parse(stored);
@@ -130,8 +138,11 @@
             renderThreadList();
         });
 
-        // Main functions
+        // --- CORE FUNCTIONS ---
 
+        /**
+         * Switch from Landing Page to Chat Interface and create new session
+         */
         function startNewChat() {
             currentThreadId = "thread_" + Math.random().toString(36).substr(2, 9);
 
@@ -144,15 +155,21 @@
             threads.unshift(newThread);
             saveThreads();
 
+            // Toggle UI
             document.getElementById('landing-page').classList.add('hidden');
             document.getElementById('chat-interface').classList.remove('hidden');
 
+            // Reset Chat Box
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML = '';
-            addMessage("bot", "Hi! I'm your Learning AI. What do you want to learn today?");
+            addMessage("bot", "Hi! I'm your Learning AI. Tell me what you want to learn (e.g., 'Learn Python', 'Cooking Basics').");
+
             renderThreadList();
         }
 
+        /**
+         * Load an existing conversation from history
+         */
         function loadThread(id) {
             currentThreadId = id;
             document.getElementById('landing-page').classList.add('hidden');
@@ -161,28 +178,30 @@
 
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML = '';
-            addMessage("bot", "Please Check your connection.");
+            addMessage("bot", "Welcome back! Please check your connection to continue.");
         }
 
-        // Delete conversation function
+        /**
+         * Delete a specific thread
+         */
         function deleteThread(event, id) {
-            event.stopPropagation();
-
+            event.stopPropagation(); // Prevent triggering loadThread
             if (!confirm("Are you sure you want to delete this plan?")) return;
 
             threads = threads.filter(t => t.id !== id);
             saveThreads();
 
-            // If delete current conversation -> landing page
             if (currentThreadId === id) {
                 backToHome();
                 currentThreadId = null;
             } else {
-                // If delete other conversation need to render list
                 renderThreadList();
             }
         }
 
+        /**
+         * Wipe all local data
+         */
         function clearAllData() {
             if(confirm("Warning: This will delete ALL your chat history. Continue?")) {
                 localStorage.removeItem('pathfinder_threads');
@@ -197,18 +216,21 @@
             document.getElementById('landing-page').classList.remove('hidden');
         }
 
-        // Chat Logic
+        // --- CHAT LOGIC ---
+
         async function sendMessage() {
             const inputField = document.getElementById("user-input");
             const message = inputField.value.trim();
             if (!message) return;
 
+            // 1. UI: Show user message
             addMessage("user", message);
             inputField.value = "";
             showTyping(true);
             updateThreadTitle(currentThreadId, message);
 
             try {
+                // 2. API: Call the backend
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -216,48 +238,133 @@
                 });
 
                 const data = await response.json();
-                showTyping(false);
+                showTyping(false); // Hide loading animation
 
+                // 3. UI: Handle response
                 if (!data || data.status === "error") {
-                    addMessage("bot", "Error: " + (data?.reply || "Unknown"));
+                    addMessage("bot", "⚠️ Error: " + (data?.reply || "Unknown error occurred"));
                 } else {
-                    if (data.plan) {
-                        addMessage("bot", data.reply);
-                        renderPlan(data.plan);
+                    // Check if there is a structured plan
+                    if (data.plan && data.plan.schedule && data.plan.schedule.length > 0) {
+                        addMessage("bot", data.reply || "Here is your roadmap:");
+                        renderPlan(data.plan); // Call the fixed render function
                     } else {
+                        // Normal text response
                         addMessage("bot", data.reply);
                     }
                 }
 
             } catch (error) {
                 showTyping(false);
-                addMessage("bot", "Connection Error.");
+                console.error(error);
+                addMessage("bot", "❌ Connection Error. Is the backend running?");
             }
         }
 
-        // UI render
+        // --- UI RENDERING (THE FIX IS HERE) ---
+
+        /**
+         * Display a message bubble
+         */
+        function addMessage(sender, text) {
+            const chatBox = document.getElementById("chat-box");
+            const isUser = sender === "user";
+            // Convert newlines to breaks for formatting
+            const safeText = text ? text.split('\n').join('<br>') : "";
+
+            const div = document.createElement("div");
+            div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} fade-in`;
+            div.innerHTML = `
+                <div class="max-w-[85%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
+                    isUser ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                }">
+                    ${safeText}
+                </div>`;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        /**
+         * Renders the structured learning roadmap
+         * FIX: Handles mismatched keys (week vs week_number)
+         */
+        function renderPlan(plan) {
+            if (!plan || !plan.schedule) return;
+            const chatBox = document.getElementById("chat-box");
+
+            // Generate HTML for list items
+            const tasksHtml = plan.schedule.map((item, index) => {
+                // --- ROBUST KEY HANDLING ---
+                // Try 'week', then 'week_number', then fallback to index + 1
+                const weekNum = item.week || item.week_number || (index + 1);
+                // Try 'topic', then 'content'
+                const topicText = item.topic || item.content || "No Topic";
+
+                // Handle sub-tasks if they exist
+                let subTasks = "";
+                if (item.daily_tasks && Array.isArray(item.daily_tasks)) {
+                    subTasks = `<ul class="list-disc list-inside text-gray-600 text-xs mt-2 space-y-1 ml-1">
+                        ${item.daily_tasks.map(t => `<li>${t}</li>`).join('')}
+                    </ul>`;
+                }
+
+                return `
+                <div class="mb-5 last:mb-0 border-l-4 border-blue-200 pl-4 fade-in hover:border-blue-400 transition-colors">
+                    <h4 class="font-bold text-blue-800 text-lg flex items-center gap-2">
+                        <span class="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded">Week ${weekNum}</span>
+                        ${topicText}
+                    </h4>
+                    <p class="text-xs text-gray-500 mt-1 italic">${item.description || ''}</p>
+                    ${subTasks}
+                </div>`;
+            }).join('');
+
+            // Create the Roadmap Card
+            const planCard = document.createElement("div");
+            planCard.className = "flex justify-start fade-in w-full mt-4";
+            planCard.innerHTML = `
+                <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 w-full max-w-2xl">
+                    <div class="flex items-center justify-between mb-6 border-b pb-4">
+                        <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fa-solid fa-map-location-dot text-blue-500"></i> Learning Roadmap
+                        </h3>
+                        <span class="bg-yellow-100 text-yellow-700 text-xs px-3 py-1 rounded-full uppercase font-bold tracking-wide">
+                            ${plan.difficulty || 'Custom'}
+                        </span>
+                    </div>
+                    <div class="text-sm">
+                        ${tasksHtml}
+                    </div>
+                </div>`;
+
+            chatBox.appendChild(planCard);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        /**
+         * Render the sidebar history list
+         */
         function renderThreadList() {
             const list = document.getElementById("thread-list");
             list.innerHTML = "";
 
             if (threads.length === 0) {
-                list.innerHTML = `<div class="text-center text-gray-400 text-sm mt-4">No history yet</div>`;
+                list.innerHTML = `<div class="text-center text-gray-400 text-sm mt-10 italic">No history yet</div>`;
                 return;
             }
 
             threads.forEach(t => {
                 const isActive = t.id === currentThreadId;
-                // Add class 'thread-item' too handle hover
-                // Add delete button
+
                 list.innerHTML += `
                     <div onclick="loadThread('${t.id}')"
-                        class="thread-item group p-3 rounded-xl cursor-pointer transition flex items-center justify-between gap-3 ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'}">
+                        class="thread-item group p-3 rounded-xl cursor-pointer transition flex items-center justify-between gap-3 ${isActive ? 'bg-blue-100 text-blue-700 shadow-sm' : 'hover:bg-gray-100 text-gray-600'}">
 
                         <div class="flex items-center gap-3 overflow-hidden">
-                            <i class="fa-regular fa-comments"></i>
+                            <i class="fa-regular fa-comments ${isActive ? 'text-blue-600' : 'text-gray-400'}"></i>
                             <div class="overflow-hidden">
                                 <p class="font-medium text-sm truncate w-32 text-left">${t.title}</p>
-                                <p class="text-xs opacity-70 text-left">${t.date}</p>
+                                <p class="text-[10px] opacity-70 text-left">${t.date}</p>
                             </div>
                         </div>
 
@@ -270,60 +377,27 @@
             });
         }
 
-        function addMessage(sender, text) {
-            const chatBox = document.getElementById("chat-box");
-            const isUser = sender === "user";
-            const safeText = text ? text.split('\n').join('<br>') : "";
-
-            const div = document.createElement("div");
-            div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} fade-in`;
-            div.innerHTML = `
-                <div class="max-w-[80%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
-                    isUser ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
-                }">${safeText}</div>`;
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function renderPlan(plan) {
-            if (!plan || !plan.schedule) return;
-            const chatBox = document.getElementById("chat-box");
-
-            let tasksHtml = plan.schedule.map(week => {
-                const safeTasks = week.daily_tasks ? week.daily_tasks.map(t => `<li>${t}</li>`).join('') : '';
-                return `
-                <div class="mb-4 last:mb-0 border-l-2 border-blue-200 pl-4">
-                    <h4 class="font-bold text-blue-700">Week ${week.week_number}: ${week.topic}</h4>
-                    <p class="text-xs text-gray-500 mb-2 italic">${week.description || ''}</p>
-                    <ul class="list-disc list-inside text-gray-700 space-y-1">${safeTasks}</ul>
-                </div>`
-            }).join('');
-
-            const planCard = document.createElement("div");
-            planCard.className = "flex justify-start fade-in w-full";
-            planCard.innerHTML = `
-                <div class="bg-white p-6 rounded-2xl shadow-md border border-blue-100 w-full max-w-2xl">
-                    <div class="flex items-center justify-between mb-4 border-b pb-2">
-                        <h3 class="text-lg font-bold text-gray-800">Learning Roadmap</h3>
-                        <span class="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full uppercase font-bold">${plan.difficulty || 'Normal'}</span>
-                    </div>
-                    <div class="text-sm space-y-4">${tasksHtml}</div>
-                </div>`;
-            chatBox.appendChild(planCard);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+        // --- UTILS ---
 
         function showTyping(isLoading) {
             const chatBox = document.getElementById("chat-box");
             const existing = document.getElementById("typing-indicator");
+
             if (isLoading && !existing) {
                 const div = document.createElement("div");
                 div.id = "typing-indicator";
                 div.className = "flex justify-start fade-in";
-                div.innerHTML = `<div class="bg-gray-200 p-3 rounded-2xl rounded-bl-none flex gap-1 items-center"><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100"></span><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200"></span></div>`;
+                div.innerHTML = `
+                    <div class="bg-gray-200 p-4 rounded-2xl rounded-bl-none flex gap-1 items-center h-10">
+                        <span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>
+                        <span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100"></span>
+                        <span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200"></span>
+                    </div>`;
                 chatBox.appendChild(div);
                 chatBox.scrollTop = chatBox.scrollHeight;
-            } else if (!isLoading && existing) existing.remove();
+            } else if (!isLoading && existing) {
+                existing.remove();
+            }
         }
 
         function saveThreads() {
@@ -334,7 +408,7 @@
         function updateThreadTitle(id, firstMessage) {
             const thread = threads.find(t => t.id === id);
             if (thread && thread.title === "New Plan") {
-                thread.title = firstMessage.substring(0, 20) + "...";
+                thread.title = firstMessage.substring(0, 20) + (firstMessage.length > 20 ? "..." : "");
                 saveThreads();
             }
         }
