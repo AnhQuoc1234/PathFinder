@@ -2,9 +2,20 @@ import os
 import sys
 import json
 import warnings
+import uuid
+
+# Set up envi and gpt api
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    print("Success add api from .env")
+except ImportError:
+    print("Please download dotenv")
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
+# IMPORT OPIK & SCORERESULt
 from opik import Opik
 from opik.evaluation import evaluate
 from langchain_openai import ChatOpenAI
@@ -20,11 +31,13 @@ except ImportError:
 
 
         class ScoreResult:
-            def __init__(self, value, reason=None):
+            def __init__(self, value, reason=None, name=None):
                 self.value = value
                 self.reason = reason
+                self.name = name
+                self.scoring_failed = False
 
-# Set up env
+            # Path
 sys.path.append(os.getcwd())
 
 # Import Agent
@@ -33,14 +46,18 @@ try:
 
     print("Agent loaded successfully.")
 except ImportError:
-    print("Agent not found. Chạy script từ thư mục gốc của project.")
+    print("Agent not found.")
     sys.exit(1)
 
-# Init grading model
-judge_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+# Init Model
+try:
+    judge_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+except Exception as e:
+    print(f"Init Error: {e}")
+    sys.exit(1)
 
 
-# Define metrics for grading
+# Define Metrics
 class JsonStructureMetric(BaseMetric):
     def __init__(self):
         super().__init__(name="JSON Structure Check")
@@ -49,15 +66,14 @@ class JsonStructureMetric(BaseMetric):
         try:
             plan = output.get("current_plan")
             if not plan:
-                return ScoreResult(value=0.0, reason="No plan found")
+                return ScoreResult(value=0.0, reason="No plan found", name=self.name)
 
-            required_keys = ["topic", "schedule", "difficulty"]
-            for key in required_keys:
-                if key not in plan:
-                    return ScoreResult(value=0.5, reason=f"Missing key: {key}")
-            return ScoreResult(value=1.0, reason="Valid JSON")
+            required_keys = ["topic", "difficulty", "schedule"]
+            if all(k in plan for k in required_keys):
+                return ScoreResult(value=1.0, reason="Valid JSON", name=self.name)
+            return ScoreResult(value=0.5, reason="Missing keys", name=self.name)
         except:
-            return ScoreResult(value=0.0, reason="Error parsing output")
+            return ScoreResult(value=0.0, reason="Parse Error", name=self.name)
 
 
 class PlanQualityMetric(BaseMetric):
@@ -67,22 +83,26 @@ class PlanQualityMetric(BaseMetric):
     def score(self, input: str, output: dict, **kwargs) -> ScoreResult:
         user_msg = input if isinstance(input, str) else str(input)
         plan = output.get("current_plan")
-        if not plan: return ScoreResult(value=0.0, reason="No plan")
+        if not plan:
+            return ScoreResult(value=0.0, reason="No plan", name=self.name)
 
         prompt = f"""
-        Rate this learning plan from 0.0 to 1.0.
+        Rate this plan (0.0 - 1.0).
         User: "{user_msg}"
-        Plan: {json.dumps(plan)}
-        Return ONLY the number.
+        Plan: {json.dumps(plan, ensure_ascii=False)}
+        Return ONLY number.
         """
         try:
             res = judge_llm.invoke(prompt).content.strip()
-            return ScoreResult(value=float(res), reason="AI Judge")
+            import re
+            match = re.search(r"0\.\d+|1\.0|0|1", res)
+            val = float(match.group()) if match else 0.5
+            return ScoreResult(value=val, reason="AI Judge", name=self.name)
         except:
-            return ScoreResult(value=0.5, reason="Error")
+            return ScoreResult(value=0.5, reason="Eval Error", name=self.name)
 
 
-# Raw Data(List)
+# EVALUATION
 raw_data = [
     {"input": "Learn Python in 2 weeks", "expected_topic": "Python"},
     {"input": "Study plan for ReactJS", "expected_topic": "ReactJS"},
@@ -91,45 +111,44 @@ raw_data = [
 ]
 
 
-# Agent Func
 def run_agent(item):
     msg = item["input"]
     inputs = {"user_message": msg, "current_plan": None, "dialogue_state": "start"}
-
-    # Randomly Thread Id
-    import uuid
     config = {"configurable": {"thread_id": f"eval_{uuid.uuid4()}"}}
 
+    # Run Agent
     res = agent_app.invoke(inputs, config=config)
+
+    # Return output for Opik
     return {
         "output": {
             "current_plan": res.get("current_plan"),
             "dialogue_state": res.get("dialogue_state")
+        }
     }
-}
 
-# MAIN EXECUTION
+
 if __name__ == "__main__":
     print("Initializing Opik")
-
     client = Opik()
 
-    # Create Dataset on Opik
-    dataset_name = "PathFinder_Dataset"
+    dataset_name = "PathFinder_Eval_Dataset"
     dataset = client.get_or_create_dataset(name=dataset_name)
 
-    # Push input to dataset
-    dataset.insert(raw_data)
-    print(f"Dataset '{dataset_name}' ready with {len(raw_data)} items.")
+    # Insert dat
+    try:
+        if dataset.get_item_count() == 0:
+            dataset.insert(raw_data)
+    except:
+        dataset.insert(raw_data)
 
-    print("Running Evaluation")
+    print(f"Running Evaluation on '{dataset_name}'...")
 
     evaluate(
         dataset=dataset,
         task=run_agent,
         scoring_metrics=[JsonStructureMetric(), PlanQualityMetric()],
-        experiment_name="PathFinder_Run_Final",
+        experiment_name="PathFinder_Success_Run",
         project_name="PathFinder"
     )
-
-    print("Done! Go to Opik Dashboard to see results.")
+    print("\n Success!")

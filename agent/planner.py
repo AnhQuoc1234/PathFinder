@@ -1,55 +1,38 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from typing import List, Optional
 
-
-# Define Learning Roadmap
+# Define Schema
 class LearningRoadmap(BaseModel):
-    topic: str = Field(description="The main subject of the learning plan")
+    topic: str = Field(description="The main subject")
+    difficulty: str = Field(description="Level", default="Beginner")
+    schedule: List[str] = Field(description="Weekly goals")
 
-    # Add Difficult
-    difficulty: str = Field(
-        description="Target difficulty level (Beginner, Intermediate, or Advanced)",
-        default="Beginner"
-    )
-
-    schedule: List[str] = Field(description="List of weekly learning goals or steps")
-
-
-# Setup Model & Prompt
+# Setup LLM
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+structured_llm = llm.with_structured_output(LearningRoadmap)
 
-system_prompt = """You are an expert education consultant.
-Create a structured learning roadmap based on the user's request.
-Ensure the output matches the required JSON structure strictly."""
-
+system_prompt = "You are an education consultant. Create a learning roadmap."
 prompt = ChatPromptTemplate.from_messages([
     ("system", system_prompt),
     ("user", "{input}")
 ])
 
-# Connect LLM with structured output
-structured_llm = llm.with_structured_output(LearningRoadmap)
-
-# Chain
 chain = prompt | structured_llm
 
-
-# Plan Func
 def generate_plan(user_input: str):
-    """
-    Generate learning plan. from user input.
-    Return object LearningRoadmap (contain topic, difficulty, schedule).
-    """
     try:
         result = chain.invoke({"input": user_input})
-        return result.dict()
+
+        if hasattr(result, "model_dump"):
+            return result.model_dump()
+        else:
+            return result.dict()
     except Exception as e:
-        # Fallback if LLM error
-        print(f"Error generating plan: {e}")
+        print(f"Planner Error: {e}")
         return {
-            "topic": "General Learning",
+            "topic": "Error",
             "difficulty": "Beginner",
-            "schedule": ["Step 1: Research basics", "Step 2: Practice daily"]
+            "schedule": ["Error generating plan"]
         }
