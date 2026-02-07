@@ -1,109 +1,135 @@
 import os
-import asyncio
-from typing import Literal
-
+import pandas as pd
+from typing import TypedDict, Any, List
 from langgraph.graph import StateGraph, END
-from langchain_core.messages import HumanMessage, SystemMessage
+from langgraph.checkpoint.memory import MemorySaver  # Replaces Postgres
 
-from langgraph.checkpoint.memory import MemorySaver  # Vẫn giữ để backup
-from langgraph.checkpoint.postgres import PostgresSaver
-from psycopg_pool import ConnectionPool
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.document_loaders import CSVLoader
+from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_core.callbacks.base import BaseCallbackHandler
 
-from agent.schemas import AgentState
-from agent.router import route_question
-from agent.planner import create_plan
-from agent.adapter import call_llm
-from agent.quiz import generate_quiz
+# Opik
+from opik.integrations.langchain import OpikTracer
 
-
-# Node Define
-def router_node(state: AgentState):
-    question = state["messages"][-1].content
-    route = route_question(question)
-    return {"route": route}
+#Config API KEY
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
 
-def planner_node(state: AgentState):
-    question = state["messages"][-1].content
-    plan = create_plan(question)
+#Build Retriever
+def build_retriever():
+    """Loads CSV and creates a local vector search engine."""
+    file_path = "knowledge.csv"
+    if not os.path.exists(file_path):
+        print("Warning: knowledge.csv not found.")
+        return None
+
+    try:
+        loader = CSVLoader(file_path=file_path)
+        docs = loader.load()
+        if not docs: return None
+
+        embeddings = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
+        vectorstore = FAISS.from_documents(docs, embeddings)
+
+        # Retrieve top 2 matches from CSV
+        return vectorstore.as_retriever(search_kwargs={"k": 2})
+    except Exception as e:
+        print(f"Error loading CSV: {e}")
+        return None
+
+
+retriever = build_retriever()
+tavily_tool = TavilySearchResults(k=3)
+
+
+# Define State
+class AgentState(TypedDict):
+    user_message: str
+    context: str
+    messages: List[Any]
+    dialogue_state: str
+    current_plan: Any
+
+
+# Define Nodes
+
+def retrieve_node(state: AgentState):
+    """Step 1: Check CSV Knowledge Base"""
+    query = state["user_message"]
+    context = ""
+
+    if retriever:
+        try:
+            results = retriever.invoke(query)
+            if results:
+                # Combine found rows into a single string
+                context = "\n\n".join([doc.page_content for doc in results])
+        except Exception:
+            pass
+
+    return {"context": context}
+
+
+def web_search_node(state: AgentState):
+    """Step 2: Check Web (Tavily) if needed or to supplement"""
+    query = state["user_message"]
+    existing_context = state.get("context", "")
+
+    # You can add logic here: Only search if existing_context is empty.
+    # For now, we search to make the answer rich.
+    try:
+        web_results = tavily_tool.invoke(query)
+        web_content = "\n".join([r.get("content", "") for r in web_results])
+
+        final_context = f"INTERNAL KNOWLEDGE (CSV):\n{existing_context}\n\nWEB SEARCH:\n{web_content}"
+        return {"context": final_context}
+    except Exception:
+        return {"context": existing_context}
+
+
+def generate_node(state: AgentState):
+    """Step 3: Generate Answer (Traced by Opik)"""
+    query = state["user_message"]
+    context = state["context"]
+
+    prompt = f"""
+    You are PathFinder AI. Answer the user based on the context provided.
+
+    CONTEXT:
+    {context}
+
+    USER QUESTION: {query}
+    """
+
+    # Initialize Opik Tracer
+    opik_tracer = OpikTracer(tags=["PathFinder_Agent"])
+
+    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
+
+    # Invoke LLM with the Opik callback to log the trace
+    response = llm.invoke(prompt, config={"callbacks": [opik_tracer]})
+
     return {
-        "messages": [SystemMessage(content=f"Here is your learning plan:\n{plan}")],
-        "plan": plan
-    }
-
-
-def chat_node(state: AgentState):
-    response = call_llm(state)
-    return {"messages": [response]}
-
-
-def quiz_node(state: AgentState):
-    # Get plan from state
-    plan_content = state.get("plan", "")
-    if not plan_content:
-        # Get last message from previous conversation
-        plan_content = state["messages"][-1].content
-
-    quiz = generate_quiz(plan_content)
-    return {
-        "messages": [SystemMessage(content=f"Here is a quiz to test your knowledge:\n{quiz}")],
+        "dialogue_state": response.content,
+        "messages": [response]
     }
 
 
 # Build Graph
 workflow = StateGraph(AgentState)
 
-workflow.add_node("router", router_node)
-workflow.add_node("planner", planner_node)
-workflow.add_node("chat", chat_node)
-workflow.add_node("quiz", quiz_node)
+workflow.add_node("retrieve", retrieve_node)
+workflow.add_node("web_search", web_search_node)
+workflow.add_node("generate", generate_node)
 
-workflow.set_entry_point("router")
+workflow.set_entry_point("retrieve")
+workflow.add_edge("retrieve", "web_search")
+workflow.add_edge("web_search", "generate")
+workflow.add_edge("generate", END)
 
-workflow.add_conditional_edges(
-    "router",
-    lambda x: x["route"],
-    {
-        "plan": "planner",
-        "chat": "chat",
-        "quiz": "quiz"
-    }
-)
-
-workflow.add_edge("planner", END)
-workflow.add_edge("chat", END)
-workflow.add_edge("quiz", END)
-
-# Database
-
-# Connection String
-DB_URI = os.getenv("DATABASE_URL")
-
-if DB_URI:
-    print("Found DATABASE_URL, connecting to PostgreSQL")
-
-    connection_kwargs = {
-        "autocommit": True,
-        "prepare_threshold": 0,
-    }
-
-    # Connection Pool
-    pool = ConnectionPool(
-        conninfo=DB_URI,
-        max_size=20,
-        kwargs=connection_kwargs,
-    )
-
-    # Checkpointer with PostgreSQL
-    checkpointer = PostgresSaver(pool)
-
-    # auto create table
-    checkpointer.setup()
-
-    print("Connected to Supabase PostgreSQL successfully!")
-else:
-    print("No DATABASE_URL found.")
-    checkpointer = MemorySaver()
-
-# Compile Graph
-app = workflow.compile(checkpointer=checkpointer)
+# Use MemorySaver (RAM) instead of Postgres
+memory = MemorySaver()
+app = workflow.compile(checkpointer=memory)
