@@ -1,12 +1,12 @@
 fastapi
 uvicorn
 python-dotenv
-langchain==0.3.0
-langchain-core==0.3.0
-langchain-openai==0.2.0
+langchain
+langchain-core
+langchain-openai
 langchain-community
 langgraph
-pydantic>=2.0.0
+pydantic
 openai
 opik
 faiss-cpu
