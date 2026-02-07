@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import TypedDict, List, Any
 
 # Define single Week
 class WeekModule(BaseModel):
@@ -15,3 +15,11 @@ class LearningRoadmap(BaseModel):
     total_weeks: int = Field(..., description="Total duration of the plan")
     schedule: List[WeekModule] = Field(..., description="List of weekly modules")
     difficulty: str = Field(..., description="Beginner, Intermediate, or Advanced")
+
+#Define AgentSate
+class AgentState(TypedDict):
+    user_message: str
+    context: str
+    messages: List[Any]
+    dialogue_state: str
+    current_plan: Any
