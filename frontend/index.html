@@ -65,7 +65,7 @@
                 </p>
                 <button onclick="startNewChat()"
                     class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold py-4 px-8 rounded-full shadow-lg transition transform hover:scale-105 flex items-center gap-2">
-                    Start Learning <i class="fa-solid fa-arrow-right"></i>
+                    START LEARNING <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
 
@@ -140,6 +140,7 @@
         // --- STATE MANAGEMENT ---
         let currentThreadId = null;
         let threads = [];
+        let cachedPlan = null; // Store plan here instead of rendering immediately
 
         // Load local storage
         try {
@@ -168,12 +169,14 @@
 
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML = '';
+            cachedPlan = null; // Reset cache
             addMessage("bot", "Hi! I'm here to help you learn. What topic do you want to master today?");
             renderThreadList();
         }
 
         function loadThread(id) {
             currentThreadId = id;
+            cachedPlan = null;
             document.getElementById('landing-page').classList.add('hidden');
             document.getElementById('chat-interface').classList.remove('hidden');
             renderThreadList();
@@ -241,25 +244,28 @@
                 if (!data || data.status === "error") {
                     addMessage("bot", "Error: " + (data?.reply || "Unknown"));
                 } else {
-                    // 4. Handle Responses
+                    // --- CHANGED LOGIC FOR "TEXT FIRST" ---
 
-                    // Case A: Text Reply (The Plan or Regular Chat)
+                    // 1. Always check for Text Reply first
                     if (data.reply) {
                         addMessage("bot", data.reply);
-
-                        // IMPORTANT: Only show Action Buttons if this is a Plan (Text)
-                        // and NOT a Roadmap or Quiz result.
-                        if (!data.plan && !data.quiz) {
-                            renderActionButtons();
-                        }
                     }
 
-                    // Case B: Roadmap (Mermaid)
+                    // 2. If Backend sends a Plan (Map), HIDE IT initially
                     if (data.plan && data.plan.markdown) {
-                        renderRichPlan(data.plan);
+                        console.log("Plan received but hidden for optional disclosure.");
+                        cachedPlan = data.plan; // Save to variable
+                        // Do NOT call renderRichPlan() here
                     }
 
-                    // Case C: Quiz
+                    // 3. Always show buttons if we have a cached plan OR it's a text reply
+                    // This allows user to click "Visualize" to reveal the hidden plan
+                    if (data.reply || cachedPlan) {
+                         renderActionButtons();
+                    }
+
+                    // 4. If Backend sends a Quiz (usually direct response to "Take Quiz")
+                    // Render it immediately because the user specifically asked for it via button
                     if (data.quiz) {
                         renderQuiz(data.quiz);
                     }
@@ -272,22 +278,30 @@
             }
         }
 
-        // --- ACTION BUTTONS (NEW FEATURE) ---
-        // Generates the buttons after a text plan
+        // --- ACTION BUTTONS ---
         function renderActionButtons() {
             const chatBox = document.getElementById("chat-box");
 
-            // Container for buttons
+            // Avoid adding buttons if the last element is already buttons
+            const lastChild = chatBox.lastElementChild;
+            if (lastChild && lastChild.querySelector('button.bg-blue-100')) {
+                return;
+            }
+
             const div = document.createElement("div");
-            div.className = "flex gap-3 mt-2 fade-in ml-2"; // ml-2 to align with bot text
+            div.className = "flex gap-3 mt-2 fade-in ml-2 mb-4";
+
+            // Button Logic:
+            // "Visualize Roadmap": If we have a cachedPlan, just render it (Instant).
+            //                      If not, send prompt to Server.
 
             div.innerHTML = `
-                <button onclick="sendAction('Generate a mermaid mindmap for the above plan')"
+                <button onclick="handleVisualizeClick(this)"
                     class="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm">
                     <i class="fa-solid fa-map"></i> Visualize Roadmap
                 </button>
 
-                <button onclick="sendAction('Generate a quiz based on the plan')"
+                <button onclick="handleQuizClick(this)"
                     class="flex items-center gap-2 bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm">
                     <i class="fa-solid fa-clipboard-question"></i> Take a Quiz
                 </button>
@@ -297,16 +311,30 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // Helper to trigger sending message when button clicked
-        function sendAction(prompt) {
-            // We pass the prompt directly to sendMessage
-            // This acts as if the user typed it
-            sendMessage(prompt);
+        // Handler for "Visualize" Button
+        function handleVisualizeClick(btnElement) {
+            // Remove the buttons to prevent double-clicking
+            const container = btnElement.parentElement;
+            container.remove();
 
-            // Optional: Remove buttons after clicking so they can't be clicked twice
-            // (You can comment this out if you want buttons to stay)
-            const buttons = document.querySelectorAll('#chat-box button.bg-blue-100, #chat-box button.bg-purple-100');
-            buttons.forEach(btn => btn.parentElement.remove());
+            if (cachedPlan) {
+                // Scenario A: Server already sent the plan (hidden). Render it instantly.
+                renderRichPlan(cachedPlan);
+                cachedPlan = null; // Clear cache
+            } else {
+                // Scenario B: No plan yet. Ask server to generate one.
+                sendMessage("Generate a mermaid mindmap for the above plan");
+            }
+        }
+
+        // Handler for "Quiz" Button
+        function handleQuizClick(btnElement) {
+             // Remove the buttons
+            const container = btnElement.parentElement;
+            container.remove();
+
+            // Always request a new quiz
+            sendMessage("Generate a quiz based on the plan");
         }
 
         // --- RENDERING HELPERS ---
