@@ -40,13 +40,51 @@
         .markdown-body li { margin-bottom: 0.25rem; }
         .markdown-body strong { color: #1e40af; }
         .markdown-body p { margin-bottom: 0.8rem; line-height: 1.6; }
+
+        /* Quiz Specific Markdown Styles */
+        .quiz-content h3 { color: #7e22ce; }
+        .quiz-content strong { color: #6b21a8; }
     </style>
 </head>
 <body class="bg-white text-gray-800 h-screen flex flex-col overflow-hidden">
 
-    <div id="chat-interface" class="flex h-screen w-full">
+    <div id="landing-page" class="flex-1 flex flex-col items-center justify-center p-6 text-center fade-in">
+        <div class="absolute top-8 left-8 flex items-center gap-2">
+            <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">P</div>
+            <span class="font-bold text-xl text-gray-700">PathFinder AI</span>
+        </div>
 
-        <div class="w-64 bg-gray-50 border-r border-gray-200 flex flex-col hidden md:flex">
+        <div class="max-w-4xl grid md:grid-cols-2 gap-12 items-center">
+            <div class="text-left space-y-6">
+                <h1 class="text-5xl font-bold leading-tight text-gray-900">
+                    Your Personal AI <br>
+                    <span class="text-blue-600">Learning Companion 🎓</span>
+                </h1>
+                <p class="text-gray-500 text-lg border-l-4 border-yellow-400 pl-4">
+                    Create study plans first, then visualize them or test your knowledge.
+                </p>
+                <button onclick="startNewChat()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold py-4 px-8 rounded-full shadow-lg transition transform hover:scale-105 flex items-center gap-2">
+                    START LEARNING <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <div class="relative hidden md:block">
+                <div class="bg-blue-50 rounded-[3rem] p-10 relative">
+                    <div class="bg-blue-600 text-white p-8 rounded-[2rem] shadow-2xl relative z-10 w-64 h-64 flex flex-col items-center justify-center mx-auto">
+                        <i class="fa-solid fa-brain text-6xl mb-4"></i>
+                        <div class="bg-white text-gray-800 px-4 py-2 rounded-xl text-sm font-medium shadow-md absolute -bottom-4 -right-8 animate-bounce">
+                            🧠 Interactive Mode!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="chat-interface" class="hidden flex h-screen w-full">
+
+        <div class="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
             <div class="p-4 border-b border-gray-200 flex items-center justify-between">
                 <span class="font-bold text-gray-700">My Sessions</span>
                 <button onclick="startNewChat()" class="text-blue-600 hover:bg-blue-100 p-2 rounded-full transition" title="New Chat">
@@ -54,13 +92,13 @@
                 </button>
             </div>
             <div id="thread-list" class="flex-1 overflow-y-auto p-2 space-y-2">
-                </div>
-            <button onclick="clearAllData()" class="p-4 text-gray-500 hover:text-red-500 text-sm flex items-center gap-2 border-t">
-                <i class="fa-solid fa-trash"></i> Reset All History
+            </div>
+            <button onclick="backToHome()" class="p-4 text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2 border-t">
+                <i class="fa-solid fa-arrow-left"></i> Back to Home
             </button>
         </div>
 
-        <div class="flex-1 flex flex-col bg-white relative">
+        <div class="flex-1 flex flex-col bg-white">
             <div class="h-16 border-b border-gray-100 flex items-center px-6 justify-between bg-white shadow-sm z-10">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
@@ -73,18 +111,13 @@
                         </span>
                     </div>
                 </div>
+                <button onclick="clearAllData()" class="text-xs text-red-400 hover:text-red-600 underline">Reset All Data</button>
             </div>
 
-            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50 pb-24">
-                <div class="flex justify-start fade-in">
-                    <div class="max-w-[85%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed bg-white text-gray-800 border border-gray-100 rounded-bl-none">
-                        Hello! I'm here to help you learn. Try asking: <br>
-                        <strong>"I want to learn Python in 4 months"</strong>
-                    </div>
-                </div>
+            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
             </div>
 
-            <div class="absolute bottom-0 w-full bg-white border-t border-gray-100 p-4">
+            <div class="p-4 bg-white border-t border-gray-100">
                 <div class="max-w-4xl mx-auto relative flex items-center gap-2">
                     <input type="text" id="user-input"
                         class="w-full bg-gray-100 text-gray-800 rounded-full pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-inner"
@@ -102,12 +135,12 @@
 
     <script>
         // --- CONFIGURATION ---
-        // Sử dụng đúng URL Server của bạn
         const API_URL = "https://pathfinder-swgh.onrender.com";
 
         // --- STATE MANAGEMENT ---
         let currentThreadId = null;
         let threads = [];
+        let cachedPlan = null; // Biến quan trọng: Dùng để giấu Map chờ user bấm nút
 
         // Load local storage
         try {
@@ -116,11 +149,10 @@
         } catch (e) { threads = []; }
 
         document.addEventListener("DOMContentLoaded", () => {
-            if (!currentThreadId) startNewChat();
             renderThreadList();
         });
 
-        // --- CORE FUNCTIONS ---
+        // --- NAVIGATION FUNCTIONS ---
 
         function startNewChat() {
             currentThreadId = "thread_" + Date.now();
@@ -132,11 +164,54 @@
             threads.unshift(newThread);
             saveThreads();
 
+            document.getElementById('landing-page').classList.add('hidden');
+            document.getElementById('chat-interface').classList.remove('hidden');
+
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML = '';
-            addMessage("bot", "Hello! Tell me what you want to learn and your timeframe.");
+            cachedPlan = null;
+            addMessage("bot", "Hi! I'm here to help you learn. What topic do you want to master today?");
             renderThreadList();
         }
+
+        function loadThread(id) {
+            currentThreadId = id;
+            cachedPlan = null;
+            document.getElementById('landing-page').classList.add('hidden');
+            document.getElementById('chat-interface').classList.remove('hidden');
+            renderThreadList();
+            document.getElementById('chat-box').innerHTML = '';
+            addMessage("bot", "Session loaded. You can continue chatting.");
+        }
+
+        function deleteThread(event, id) {
+            event.stopPropagation();
+            if (!confirm("Delete this plan?")) return;
+            threads = threads.filter(t => t.id !== id);
+            saveThreads();
+            if (currentThreadId === id) {
+                backToHome();
+                currentThreadId = null;
+            } else {
+                renderThreadList();
+            }
+        }
+
+        function backToHome() {
+            document.getElementById('chat-interface').classList.add('hidden');
+            document.getElementById('landing-page').classList.remove('hidden');
+        }
+
+        function clearAllData() {
+            if(confirm("Delete ALL history?")) {
+                localStorage.removeItem('pathfinder_threads');
+                threads = [];
+                backToHome();
+                renderThreadList();
+            }
+        }
+
+        // --- CORE CHAT LOGIC ---
 
         async function sendMessage(manualMessage = null, isHiddenCommand = false) {
             const inputField = document.getElementById("user-input");
@@ -144,13 +219,12 @@
 
             if (!message) return;
 
-            // 1. Nếu không phải lệnh ẩn (như vẽ map), thì hiện tin nhắn user lên
+            // 1. Chỉ hiện tin nhắn User nếu KHÔNG phải là lệnh ẩn (lệnh từ nút bấm)
             if (!isHiddenCommand) {
                 addMessage("user", message);
                 if (!manualMessage) inputField.value = "";
-            } else {
-                // Nếu là lệnh ẩn, hiện loading kiểu khác hoặc thông báo nhỏ
-                // Ở đây ta cứ hiện loading bình thường để user biết đang xử lý
+                // Khi user hỏi câu mới, xóa cache cũ đi để tránh vẽ nhầm map cũ
+                cachedPlan = null;
             }
 
             // 2. Loading State
@@ -158,7 +232,7 @@
             updateThreadTitle(currentThreadId, message);
 
             try {
-                // 3. Gửi lên Server
+                // 3. Send to Backend
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -174,57 +248,67 @@
                 if (!data || data.status === "error") {
                     addMessage("bot", "⚠️ Server Error: " + (data?.reply || "Unknown"));
                 } else {
-                    // --- XỬ LÝ PHẢN HỒI ---
+                    // --- XỬ LÝ LOGIC HIỂN THỊ ---
 
-                    // A. Nếu có Text trả lời
+                    // A. Nếu có Text Reply -> Hiện ngay
                     if (data.reply) {
                         addMessage("bot", data.reply);
-
-                        // LOGIC QUAN TRỌNG:
-                        // Nếu tin nhắn dài (có vẻ là kế hoạch học tập), hiện nút gợi ý
-                        // Tránh hiện nút khi user chỉ chào hỏi "Hello"
-                        if (data.reply.length > 50 && !isHiddenCommand) {
-                            renderActionButtons();
-                        }
                     }
 
-                    // B. Nếu Server trả về Map (do bấm nút visualize)
-                    if (data.plan && (data.plan.mermaid || data.plan.markdown)) {
-                        renderRichPlan(data.plan);
+                    // B. Nếu Backend gửi kèm Plan (Map) -> KHOAN VẼ, LƯU VÀO KHO
+                    if (data.plan && (data.plan.markdown || data.plan.mermaid)) {
+                        console.log("Plan received but hidden. Waiting for user.");
+                        cachedPlan = data.plan;
                     }
 
-                    // C. Nếu Server trả về Quiz (do bấm nút quiz)
+                    // C. Logic hiển thị Nút:
+                    // Chỉ hiện nút Visualize/Quiz nếu:
+                    // 1. Có cachedPlan (nghĩa là server đã gửi map ngầm)
+                    // 2. HOẶC reply dài (nghĩa là vừa tạo text plan xong)
+                    // 3. VÀ không phải là đang trả lời Quiz
+                    if ((cachedPlan || (data.reply && data.reply.length > 100)) && !data.quiz) {
+                         renderActionButtons();
+                    }
+
+                    // D. Nếu Backend gửi Quiz (thường do bấm nút Quiz) -> Hiện luôn
                     if (data.quiz) {
                         renderQuiz(data.quiz);
+                    }
+
+                    // E. TRƯỜNG HỢP ĐẶC BIỆT: Bấm nút Visualize nhưng Server chưa gửi cache trước đó
+                    // thì lúc này Server trả về data.plan -> Vẽ luôn
+                    if (isHiddenCommand && message.includes("mermaid mindmap") && data.plan) {
+                        renderRichPlan(data.plan);
                     }
                 }
 
             } catch (error) {
                 showTyping(false);
-                addMessage("bot", "❌ Connection failed. Is the backend running?");
+                addMessage("bot", "Connection error. Is the server running?");
                 console.error(error);
             }
         }
 
-        // --- CÁC NÚT CHỨC NĂNG (THEO Ý BẠN) ---
-
+        // --- ACTION BUTTONS ---
         function renderActionButtons() {
             const chatBox = document.getElementById("chat-box");
 
-            const div = document.createElement("div");
-            div.className = "flex gap-3 mt-2 fade-in ml-2 mb-4";
+            // Xóa nút cũ nếu có để tránh trùng lặp
+            const oldBtns = chatBox.querySelectorAll(".action-buttons");
+            oldBtns.forEach(b => b.remove());
 
-            // Nút 1: Visualize
-            // Nút 2: Quiz
+            const div = document.createElement("div");
+            div.className = "action-buttons flex gap-3 mt-2 fade-in ml-2 mb-4";
+
             div.innerHTML = `
-                <button onclick="triggerMap(this)"
+                <button onclick="handleVisualizeClick(this)"
                     class="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm border border-blue-200">
-                    <i class="fa-solid fa-map"></i> Draw Roadmap
+                    <i class="fa-solid fa-map"></i> Visualize Roadmap
                 </button>
 
-                <button onclick="triggerQuiz(this)"
+                <button onclick="handleQuizClick(this)"
                     class="flex items-center gap-2 bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm border border-purple-200">
-                    <i class="fa-solid fa-list-check"></i> Take a Quiz
+                    <i class="fa-solid fa-clipboard-question"></i> Take a Quiz
                 </button>
             `;
 
@@ -232,21 +316,34 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function triggerMap(btn) {
-            // Ẩn nút đi để tránh bấm nhiều lần
-            btn.parentElement.remove();
-            // Gửi lệnh ngầm
-            sendMessage("Visualize the above plan as a detailed mermaid mindmap", true);
+        // Bấm nút Visualize
+        function handleVisualizeClick(btnElement) {
+            // Xóa cụm nút đi
+            const container = btnElement.parentElement;
+            container.remove();
+
+            if (cachedPlan) {
+                // TRƯỜNG HỢP 1: Server đã gửi Map kèm Text rồi (đang giấu) -> Vẽ ngay lập tức
+                renderRichPlan(cachedPlan);
+                // Giữ cachedPlan lại phòng khi user muốn xem lại hoặc làm gì đó, hoặc set null tùy ý
+            } else {
+                // TRƯỜNG HỢP 2: Server chưa gửi Map -> Gửi lệnh ngầm xin Map
+                // isHiddenCommand = true để không hiện tin nhắn người dùng
+                sendMessage("Visualize the above plan as a detailed mermaid mindmap", true);
+            }
         }
 
-        function triggerQuiz(btn) {
-            // Ẩn nút đi
-            btn.parentElement.remove();
-            // Gửi lệnh ngầm
+        // Bấm nút Quiz
+        function handleQuizClick(btnElement) {
+             // Xóa cụm nút đi
+            const container = btnElement.parentElement;
+            container.remove();
+
+            // Luôn gửi lệnh xin Quiz mới
             sendMessage("Create a multiple choice quiz based on the plan above", true);
         }
 
-        // --- UI RENDERING HELPERS ---
+        // --- RENDERING HELPERS ---
 
         function addMessage(sender, text) {
             const chatBox = document.getElementById("chat-box");
@@ -273,13 +370,13 @@
             const planCard = document.createElement("div");
             planCard.className = "flex justify-start fade-in w-full mt-4";
 
-            // Lấy code mermaid
+            // Hỗ trợ cả 2 trường markdown hoặc mermaid trực tiếp
             const mermaidCode = plan.mermaid || plan.markdown;
 
             planCard.innerHTML = `
                 <div class="bg-white p-2 rounded-xl shadow-lg border border-gray-200 w-full max-w-3xl overflow-hidden">
                     <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b">
-                        <h3 class="font-bold text-gray-700 text-sm"><i class="fa-solid fa-sitemap"></i> Learning Roadmap</h3>
+                        <h3 class="font-bold text-gray-700 text-sm"><i class="fa-solid fa-map"></i> Roadmap Visualization</h3>
                     </div>
                     <div class="mermaid flex justify-center p-4 overflow-x-auto">
                         ${mermaidCode}
@@ -289,7 +386,8 @@
             chatBox.appendChild(planCard);
 
             if (window.mermaid) {
-                try { await window.mermaid.run(); } catch(e) { console.log(e); }
+                try { await window.mermaid.run(); }
+                catch(e) { console.log("Mermaid error:", e); }
             }
             chatBox.scrollTop = chatBox.scrollHeight;
         }
@@ -299,21 +397,20 @@
             const quizCard = document.createElement("div");
             quizCard.className = "flex justify-start fade-in w-full mt-4";
 
-            // Xử lý nếu quiz là object JSON
-            let contentToShow = typeof quizContent === 'object' ? JSON.stringify(quizContent) : quizContent;
+            let content = typeof quizContent === 'object' ? JSON.stringify(quizContent) : quizContent;
 
             quizCard.innerHTML = `
                 <div class="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-purple-500 w-full max-w-3xl">
                     <div class="flex items-center justify-between mb-4 border-b pb-2">
                         <h3 class="text-lg font-bold text-purple-700 flex items-center gap-2">
-                            <i class="fa-solid fa-clipboard-question"></i> Quiz Time
+                            <i class="fa-solid fa-clipboard-question"></i> Knowledge Check
                         </h3>
                     </div>
                     <div class="markdown-body quiz-content text-gray-700 leading-relaxed">
-                        ${marked.parse(contentToShow)}
+                        ${marked.parse(content)}
                     </div>
                     <div class="mt-4 pt-4 border-t border-gray-100 text-right text-xs text-gray-400">
-                        Type your answer (e.g. "1A, 2B")...
+                        Type your answers (e.g., 1A, 2B) to check.
                     </div>
                 </div>`;
 
@@ -329,7 +426,7 @@
                 const div = document.createElement("div");
                 div.id = "typing-indicator";
                 div.className = "flex justify-start fade-in";
-                div.innerHTML = `<div class="bg-gray-100 p-3 rounded-2xl rounded-bl-none flex gap-1 items-center ml-2 border border-gray-200"><span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span><span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></span><span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></span></div>`;
+                div.innerHTML = `<div class="bg-gray-200 p-3 rounded-2xl rounded-bl-none flex gap-1 items-center"><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100"></span><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200"></span></div>`;
                 chatBox.appendChild(div);
                 chatBox.scrollTop = chatBox.scrollHeight;
             } else if (!isLoading && existing) {
@@ -351,7 +448,7 @@
         }
 
         function renderThreadList() {
-            const list = document.getElementById("thread-list");
+             const list = document.getElementById("thread-list");
             list.innerHTML = "";
             threads.forEach(t => {
                 const isActive = t.id === currentThreadId;
@@ -362,29 +459,6 @@
                         <i onclick="deleteThread(event, '${t.id}')" class="fa-solid fa-trash text-xs text-gray-300 hover:text-red-500"></i>
                     </div>`;
             });
-        }
-
-        function loadThread(id) {
-            currentThreadId = id;
-            document.getElementById("chat-box").innerHTML = "";
-            renderThreadList();
-            addMessage("bot", "Session resumed.");
-        }
-
-        function deleteThread(e, id) {
-            e.stopPropagation();
-            if(confirm("Delete chat?")) {
-                threads = threads.filter(t => t.id !== id);
-                saveThreads();
-                if(currentThreadId == id) startNewChat();
-            }
-        }
-
-        function clearAllData() {
-            if(confirm("Clear all history?")) {
-                localStorage.removeItem('pathfinder_threads');
-                location.reload();
-            }
         }
 
         function handleEnter(e) {
