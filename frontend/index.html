@@ -1,14 +1,18 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StudyBot - AI Learning Companion</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
         mermaid.initialize({ startOnLoad: false, theme: 'default' });
@@ -17,7 +21,9 @@
 
     <style>
         body { font-family: 'Poppins', sans-serif; }
-        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Custom Scrollbar */
@@ -26,16 +32,18 @@
         ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
 
-        /* Delete animation */
-        .thread-item:hover .delete-btn { opacity: 1; }
-
-        /* Markdown Styles  */
+        /* Markdown Styles within Chat */
         .markdown-body h2 { font-size: 1.25rem; font-weight: 700; color: #1d4ed8; margin-top: 1rem; margin-bottom: 0.5rem; }
         .markdown-body h3 { font-size: 1.1rem; font-weight: 600; color: #2563eb; margin-top: 0.8rem; }
         .markdown-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.8rem; }
+        .markdown-body ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.8rem; }
         .markdown-body li { margin-bottom: 0.25rem; }
         .markdown-body strong { color: #1e40af; }
         .markdown-body p { margin-bottom: 0.8rem; line-height: 1.6; }
+
+        /* Quiz Specific Markdown Styles */
+        .quiz-content h3 { color: #7e22ce; }
+        .quiz-content strong { color: #6b21a8; }
     </style>
 </head>
 <body class="bg-white text-gray-800 h-screen flex flex-col overflow-hidden">
@@ -49,15 +57,15 @@
         <div class="max-w-4xl grid md:grid-cols-2 gap-12 items-center">
             <div class="text-left space-y-6">
                 <h1 class="text-5xl font-bold leading-tight text-gray-900">
-                    Our AI will help you <br>
-                    with your <span class="text-blue-600">studies 🎓</span>
+                    Your Personal AI <br>
+                    <span class="text-blue-600">Learning Companion 🎓</span>
                 </h1>
                 <p class="text-gray-500 text-lg border-l-4 border-yellow-400 pl-4">
-                    Get help with any kind of learning plan - now with Mind Maps!
+                    Create study plans first, then visualize them or test your knowledge.
                 </p>
                 <button onclick="startNewChat()"
                     class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold py-4 px-8 rounded-full shadow-lg transition transform hover:scale-105 flex items-center gap-2">
-                    START CHAT <span class="bg-red-500 text-xs rounded-full px-2 py-0.5 ml-1">NEW</span>
+                    START LEARNING <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
 
@@ -66,7 +74,7 @@
                     <div class="bg-blue-600 text-white p-8 rounded-[2rem] shadow-2xl relative z-10 w-64 h-64 flex flex-col items-center justify-center mx-auto">
                         <i class="fa-solid fa-brain text-6xl mb-4"></i>
                         <div class="bg-white text-gray-800 px-4 py-2 rounded-xl text-sm font-medium shadow-md absolute -bottom-4 -right-8 animate-bounce">
-                            🧠 I can draw maps!
+                            🧠 Interactive Mode!
                         </div>
                     </div>
                 </div>
@@ -78,12 +86,13 @@
 
         <div class="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
             <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-                <span class="font-bold text-gray-700">My Plans</span>
+                <span class="font-bold text-gray-700">My Sessions</span>
                 <button onclick="startNewChat()" class="text-blue-600 hover:bg-blue-100 p-2 rounded-full transition" title="New Chat">
                     <i class="fa-solid fa-plus"></i>
                 </button>
             </div>
-            <div id="thread-list" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+            <div id="thread-list" class="flex-1 overflow-y-auto p-2 space-y-2">
+                </div>
             <button onclick="backToHome()" class="p-4 text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2 border-t">
                 <i class="fa-solid fa-arrow-left"></i> Back to Home
             </button>
@@ -105,13 +114,14 @@
                 <button onclick="clearAllData()" class="text-xs text-red-400 hover:text-red-600 underline">Reset All Data</button>
             </div>
 
-            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50"></div>
+            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
+                </div>
 
             <div class="p-4 bg-white border-t border-gray-100">
                 <div class="max-w-4xl mx-auto relative flex items-center gap-2">
                     <input type="text" id="user-input"
                         class="w-full bg-gray-100 text-gray-800 rounded-full pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-inner"
-                        placeholder="Type your goal (e.g., Learn Python)"
+                        placeholder="Type your goal (e.g., Learn SQL)..."
                         onkeypress="handleEnter(event)">
 
                     <button onclick="sendMessage()"
@@ -124,14 +134,14 @@
     </div>
 
     <script>
-        // URL
-        const API_URL = "https://pathfinder-swgh.onrender.com";
+        // --- CONFIGURATION ---
+        const API_URL = "https://pathfinder-swgh.onrender.com"; // Your Render URL
 
-        // State
+        // --- STATE MANAGEMENT ---
         let currentThreadId = null;
         let threads = [];
 
-        // Load data
+        // Load local storage
         try {
             const stored = localStorage.getItem('pathfinder_threads');
             if (stored) threads = JSON.parse(stored);
@@ -141,7 +151,7 @@
             renderThreadList();
         });
 
-        // startNewChat func
+        // --- NAVIGATION FUNCTIONS ---
 
         function startNewChat() {
             currentThreadId = "thread_" + Math.random().toString(36).substr(2, 9);
@@ -158,7 +168,7 @@
 
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML = '';
-            addMessage("bot", "Hi! I create Visual Learning Maps using Mindmaps. What do you want to learn?");
+            addMessage("bot", "Hi! I'm here to help you learn. What topic do you want to master today?");
             renderThreadList();
         }
 
@@ -168,7 +178,7 @@
             document.getElementById('chat-interface').classList.remove('hidden');
             renderThreadList();
             document.getElementById('chat-box').innerHTML = '';
-            addMessage("bot", "History loaded. Please check your connection.");
+            addMessage("bot", "Session loaded. You can continue chatting.");
         }
 
         function deleteThread(event, id) {
@@ -184,6 +194,11 @@
             }
         }
 
+        function backToHome() {
+            document.getElementById('chat-interface').classList.add('hidden');
+            document.getElementById('landing-page').classList.remove('hidden');
+        }
+
         function clearAllData() {
             if(confirm("Delete ALL history?")) {
                 localStorage.removeItem('pathfinder_threads');
@@ -193,27 +208,31 @@
             }
         }
 
-        function backToHome() {
-            document.getElementById('chat-interface').classList.add('hidden');
-            document.getElementById('landing-page').classList.remove('hidden');
-        }
+        // --- CORE CHAT LOGIC ---
 
-        // Chat Logic
-        async function sendMessage() {
+        async function sendMessage(manualMessage = null) {
             const inputField = document.getElementById("user-input");
-            const message = inputField.value.trim();
+            const message = manualMessage || inputField.value.trim();
+
             if (!message) return;
 
+            // 1. Show User Message
             addMessage("user", message);
-            inputField.value = "";
+            if (!manualMessage) inputField.value = "";
+
+            // 2. Loading State
             showTyping(true);
             updateThreadTitle(currentThreadId, message);
 
             try {
+                // 3. Send to Backend
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message: message, thread_id: currentThreadId })
+                    body: JSON.stringify({
+                        message: message,
+                        thread_id: currentThreadId
+                    })
                 });
 
                 const data = await response.json();
@@ -222,88 +241,153 @@
                 if (!data || data.status === "error") {
                     addMessage("bot", "Error: " + (data?.reply || "Unknown"));
                 } else {
-                    // Check data
-                    if (data.plan && data.plan.markdown) {
-                        // Markdown + Mermaid
-                        renderRichPlan(data.plan);
-                    } else if (data.plan && data.plan.schedule) {
+                    // 4. Handle Responses
 
-                        renderOldPlan(data.plan);
-                    } else {
+                    // Case A: Text Reply (The Plan or Regular Chat)
+                    if (data.reply) {
                         addMessage("bot", data.reply);
+
+                        // IMPORTANT: Only show Action Buttons if this is a Plan (Text)
+                        // and NOT a Roadmap or Quiz result.
+                        if (!data.plan && !data.quiz) {
+                            renderActionButtons();
+                        }
+                    }
+
+                    // Case B: Roadmap (Mermaid)
+                    if (data.plan && data.plan.markdown) {
+                        renderRichPlan(data.plan);
+                    }
+
+                    // Case C: Quiz
+                    if (data.quiz) {
+                        renderQuiz(data.quiz);
                     }
                 }
 
             } catch (error) {
                 showTyping(false);
-                addMessage("bot", "Connection Error.");
+                addMessage("bot", "Server is waking up or connection lost. Please try again.");
                 console.error(error);
             }
         }
 
-        // Render UI layout
-
-        function addMessage(sender, text) {
+        // --- ACTION BUTTONS (NEW FEATURE) ---
+        // Generates the buttons after a text plan
+        function renderActionButtons() {
             const chatBox = document.getElementById("chat-box");
-            const isUser = sender === "user";
+
+            // Container for buttons
             const div = document.createElement("div");
-            div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} fade-in`;
+            div.className = "flex gap-3 mt-2 fade-in ml-2"; // ml-2 to align with bot text
+
             div.innerHTML = `
-                <div class="max-w-[80%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
-                    isUser ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
-                }">${text}</div>`;
+                <button onclick="sendAction('Generate a mermaid mindmap for the above plan')"
+                    class="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm">
+                    <i class="fa-solid fa-map"></i> Visualize Roadmap
+                </button>
+
+                <button onclick="sendAction('Generate a quiz based on the plan')"
+                    class="flex items-center gap-2 bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm">
+                    <i class="fa-solid fa-clipboard-question"></i> Take a Quiz
+                </button>
+            `;
+
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // Markdown and mindmap
+        // Helper to trigger sending message when button clicked
+        function sendAction(prompt) {
+            // We pass the prompt directly to sendMessage
+            // This acts as if the user typed it
+            sendMessage(prompt);
+
+            // Optional: Remove buttons after clicking so they can't be clicked twice
+            // (You can comment this out if you want buttons to stay)
+            const buttons = document.querySelectorAll('#chat-box button.bg-blue-100, #chat-box button.bg-purple-100');
+            buttons.forEach(btn => btn.parentElement.remove());
+        }
+
+        // --- RENDERING HELPERS ---
+
+        function addMessage(sender, text) {
+            const chatBox = document.getElementById("chat-box");
+            const isUser = sender === "user";
+
+            const div = document.createElement("div");
+            div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} fade-in`;
+
+            div.innerHTML = `
+                <div class="max-w-[85%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
+                    isUser ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                }">
+                    <div class="markdown-body" style="${isUser ? 'color:white' : ''}">
+                        ${marked.parse(text)}
+                    </div>
+                </div>`;
+
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
         async function renderRichPlan(plan) {
             const chatBox = document.getElementById("chat-box");
-
-            // Main Container
             const planCard = document.createElement("div");
             planCard.className = "flex justify-start fade-in w-full mt-4";
 
-            // card
             planCard.innerHTML = `
                 <div class="bg-white p-6 rounded-2xl shadow-lg border border-blue-100 w-full max-w-3xl overflow-hidden">
                     <div class="flex items-center justify-between mb-4 border-b pb-2">
                         <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                            <i class="fa-solid fa-map"></i> Smart Roadmap
+                            <i class="fa-solid fa-map"></i> Roadmap Visualization
                         </h3>
                     </div>
-
                     <div class="mb-6 bg-blue-50 p-4 rounded-xl overflow-x-auto border border-blue-100">
                          <div class="mermaid flex justify-center">
                             ${plan.mermaid}
                         </div>
                     </div>
-
-                    <div class="markdown-body text-sm text-gray-700">
-                        ${marked.parse(plan.markdown)}
-                    </div>
                 </div>`;
 
             chatBox.appendChild(planCard);
 
-            // mermaid to draw mind map
             if (window.mermaid) {
-                try {
-                    await window.mermaid.run();
-                } catch(e) { console.log("Mermaid drawing error:", e); }
+                try { await window.mermaid.run(); }
+                catch(e) { console.log("Mermaid error:", e); }
             }
-
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // Old func
-        function renderOldPlan(plan) {
-            addMessage("bot", "This is an old format plan. Please wait for backend update.");
+        function renderQuiz(quizContent) {
+            const chatBox = document.getElementById("chat-box");
+            const quizCard = document.createElement("div");
+            quizCard.className = "flex justify-start fade-in w-full mt-4";
+
+            quizCard.innerHTML = `
+                <div class="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-purple-500 w-full max-w-3xl">
+                    <div class="flex items-center justify-between mb-4 border-b pb-2">
+                        <h3 class="text-lg font-bold text-purple-700 flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-question"></i> Knowledge Check
+                        </h3>
+                        <span class="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full font-semibold">Quiz</span>
+                    </div>
+                    <div class="markdown-body quiz-content text-gray-700 leading-relaxed">
+                        ${marked.parse(quizContent)}
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-100 text-right text-xs text-gray-400">
+                        Type your answers in the chat to continue.
+                    </div>
+                </div>`;
+
+            chatBox.appendChild(quizCard);
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
 
         function showTyping(isLoading) {
             const chatBox = document.getElementById("chat-box");
             const existing = document.getElementById("typing-indicator");
+
             if (isLoading && !existing) {
                 const div = document.createElement("div");
                 div.id = "typing-indicator";
@@ -311,7 +395,9 @@
                 div.innerHTML = `<div class="bg-gray-200 p-3 rounded-2xl rounded-bl-none flex gap-1 items-center"><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100"></span><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200"></span></div>`;
                 chatBox.appendChild(div);
                 chatBox.scrollTop = chatBox.scrollHeight;
-            } else if (!isLoading && existing) existing.remove();
+            } else if (!isLoading && existing) {
+                existing.remove();
+            }
         }
 
         function saveThreads() {
@@ -351,7 +437,9 @@
             });
         }
 
-        function handleEnter(e) { if (e.key === "Enter") sendMessage(); }
+        function handleEnter(e) {
+            if (e.key === "Enter") sendMessage();
+        }
     </script>
 </body>
 </html>
