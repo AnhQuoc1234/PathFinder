@@ -15,7 +15,7 @@ except ImportError:
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# IMPORT OPIK & SCORERESULt
+# import opik and score result
 from opik import Opik
 from opik.evaluation import evaluate
 from langchain_openai import ChatOpenAI
@@ -102,7 +102,7 @@ class PlanQualityMetric(BaseMetric):
             return ScoreResult(value=0.5, reason="Eval Error", name=self.name)
 
 
-# EVALUATION
+# Evaluation
 raw_data = [
     {"input": "Learn Python in 2 weeks", "expected_topic": "Python"},
     {"input": "Study plan for ReactJS", "expected_topic": "ReactJS"},

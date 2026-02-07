@@ -29,7 +29,7 @@
         /* Delete animation */
         .thread-item:hover .delete-btn { opacity: 1; }
 
-        /* Markdown Styles cho nội dung đẹp hơn */
+        /* Markdown Styles  */
         .markdown-body h2 { font-size: 1.25rem; font-weight: 700; color: #1d4ed8; margin-top: 1rem; margin-bottom: 0.5rem; }
         .markdown-body h3 { font-size: 1.1rem; font-weight: 600; color: #2563eb; margin-top: 0.8rem; }
         .markdown-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.8rem; }
@@ -124,7 +124,7 @@
     </div>
 
     <script>
-        // --- URL ---
+        // URL
         const API_URL = "https://pathfinder-swgh.onrender.com";
 
         // State
@@ -141,7 +141,7 @@
             renderThreadList();
         });
 
-        // --- CÁC HÀM CHÍNH (GIỮ NGUYÊN LOGIC CŨ) ---
+        // startNewChat func
 
         function startNewChat() {
             currentThreadId = "thread_" + Math.random().toString(36).substr(2, 9);
@@ -198,7 +198,7 @@
             document.getElementById('landing-page').classList.remove('hidden');
         }
 
-        // --- CHAT LOGIC (ĐÃ CẬP NHẬT ĐỂ NHẬN JSON MỚI) ---
+        // Chat Logic
         async function sendMessage() {
             const inputField = document.getElementById("user-input");
             const message = inputField.value.trim();
@@ -222,12 +222,12 @@
                 if (!data || data.status === "error") {
                     addMessage("bot", "Error: " + (data?.reply || "Unknown"));
                 } else {
-                    // --- XỬ LÝ QUAN TRỌNG: KIỂM TRA DATA MỚI HAY CŨ ---
+                    // Check data
                     if (data.plan && data.plan.markdown) {
-                        // Backend MỚI (Markdown + Mermaid)
+                        // Markdown + Mermaid
                         renderRichPlan(data.plan);
                     } else if (data.plan && data.plan.schedule) {
-                        // Backend CŨ (List of weeks) - Fallback
+
                         renderOldPlan(data.plan);
                     } else {
                         addMessage("bot", data.reply);
@@ -241,7 +241,7 @@
             }
         }
 
-        // --- RENDER GIAO DIỆN ---
+        // Render UI layout
 
         function addMessage(sender, text) {
             const chatBox = document.getElementById("chat-box");
@@ -256,15 +256,15 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // HÀM HIỂN THỊ MỚI: MARKDOWN & MINDMAP
+        // Markdown and mindmap
         async function renderRichPlan(plan) {
             const chatBox = document.getElementById("chat-box");
 
-            // Container chính
+            // Main Container
             const planCard = document.createElement("div");
             planCard.className = "flex justify-start fade-in w-full mt-4";
 
-            // Nội dung
+            // card
             planCard.innerHTML = `
                 <div class="bg-white p-6 rounded-2xl shadow-lg border border-blue-100 w-full max-w-3xl overflow-hidden">
                     <div class="flex items-center justify-between mb-4 border-b pb-2">
@@ -286,7 +286,7 @@
 
             chatBox.appendChild(planCard);
 
-            // Kích hoạt Mermaid vẽ hình
+            // mermaid to draw mind map
             if (window.mermaid) {
                 try {
                     await window.mermaid.run();
@@ -296,7 +296,7 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // HÀM CŨ (Để đề phòng backend chưa cập nhật kịp)
+        // Old func
         function renderOldPlan(plan) {
             addMessage("bot", "This is an old format plan. Please wait for backend update.");
         }
