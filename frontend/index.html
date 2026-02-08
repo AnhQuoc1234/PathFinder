@@ -4,33 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PathFinder - AI Learning Companion</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
     <style>
         body { font-family: 'Poppins', sans-serif; }
-        .fade-in { animation: fadeIn 0.5s ease-out; }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
-
-        /* Markdown Styling inside bubbles */
-        .markdown-body h3 { font-size: 1.1rem; font-weight: 600; color: #2563eb; margin-top: 0.5rem; }
-        .markdown-body ul { list-style-type: disc; padding-left: 1.2rem; }
-        .markdown-body p { margin-bottom: 0.5rem; }
-
-        /* Checkbox Strikethrough Logic */
-        input[type="checkbox"]:checked + span {
-            text-decoration: line-through;
-            color: #9ca3af;
-        }
+        input[type="checkbox"]:checked + span { text-decoration: line-through; color: #9ca3af; }
     </style>
 </head>
 <body class="bg-white text-gray-800 h-screen flex flex-col overflow-hidden">
@@ -38,10 +23,8 @@
     <div id="auth-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center backdrop-blur-sm fade-in">
         <div class="bg-white rounded-2xl shadow-2xl p-8 w-96 max-w-full relative">
             <button onclick="toggleAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
-            <div class="text-center mb-6">
-                <h2 id="auth-title" class="text-2xl font-bold text-gray-800">Login</h2>
-                <p class="text-sm text-gray-500">Save your learning history</p>
-            </div>
+            <h2 id="auth-title" class="text-2xl font-bold text-gray-800 mb-2 text-center">Login</h2>
+            <p class="text-center text-sm text-gray-500 mb-6">Save your progress and history</p>
             <input type="text" id="auth-user" placeholder="Username" class="w-full bg-gray-100 p-3 rounded-lg mb-3 border focus:border-blue-500 outline-none">
             <input type="password" id="auth-pass" placeholder="Password" class="w-full bg-gray-100 p-3 rounded-lg mb-6 border focus:border-blue-500 outline-none">
             <button onclick="handleAuth()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition mb-4 shadow-lg">
@@ -53,42 +36,27 @@
         </div>
     </div>
 
-    <div id="landing-page" class="flex-1 flex flex-col items-center justify-center p-6 text-center fade-in">
+    <div id="landing-page" class="flex-1 flex flex-col items-center justify-center p-6 text-center fade-in relative">
         <div class="absolute top-8 left-8 flex items-center gap-2">
             <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg">P</div>
             <span class="font-bold text-2xl text-gray-800 tracking-tight">PathFinder</span>
         </div>
-
         <div class="absolute top-8 right-8">
-             <button onclick="toggleAuthModal()" id="landing-auth-btn" class="text-blue-600 font-semibold hover:bg-blue-50 px-4 py-2 rounded-full transition">
-                Login / Register
-            </button>
+             <button onclick="checkAuthAndToggle()" id="landing-auth-btn" class="text-blue-600 font-semibold hover:bg-blue-50 px-4 py-2 rounded-full transition">Login / Register</button>
         </div>
-
-        <div class="max-w-5xl grid md:grid-cols-2 gap-12 items-center">
+        <div class="max-w-5xl grid md:grid-cols-2 gap-12 items-center mt-12">
             <div class="text-left space-y-8">
-                <h1 class="text-5xl md:text-6xl font-bold leading-tight text-gray-900">
-                    Master any Skill <br>
-                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">In Weeks.</span>
-                </h1>
-                <p class="text-gray-500 text-lg border-l-4 border-yellow-400 pl-6 leading-relaxed">
-                    Generate structured learning roadmaps, track your progress, and test your knowledge with interactive AI quizzes.
-                </p>
-                <button onclick="startNewChat()"
-                    class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold py-4 px-10 rounded-full shadow-xl transition transform hover:scale-105 flex items-center gap-3">
+                <h1 class="text-5xl md:text-6xl font-bold leading-tight text-gray-900">Master any Skill <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">In Weeks.</span></h1>
+                <p class="text-gray-500 text-lg border-l-4 border-yellow-400 pl-6 leading-relaxed">Generate structured learning roadmaps, track your progress, and test your knowledge with interactive AI quizzes.</p>
+                <button onclick="enterChatView(false)" class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold py-4 px-10 rounded-full shadow-xl transition transform hover:scale-105 flex items-center gap-3">
                     Start Learning <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
-
             <div class="hidden md:block relative">
-                <div class="absolute inset-0 bg-gradient-to-tr from-blue-100 to-purple-100 rounded-full opacity-50 blur-3xl"></div>
                 <div class="bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-2xl relative border border-white">
                     <div class="flex gap-4 mb-6">
                         <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600"><i class="fa-solid fa-code"></i></div>
-                        <div>
-                            <h3 class="font-bold text-lg">Python Mastery</h3>
-                            <p class="text-xs text-gray-500">4 Week Plan</p>
-                        </div>
+                        <div><h3 class="font-bold text-lg">Python Mastery</h3><p class="text-xs text-gray-500">4 Week Plan</p></div>
                     </div>
                     <div class="space-y-3">
                         <div class="h-2 bg-gray-100 rounded-full w-full overflow-hidden"><div class="h-full bg-blue-500 w-3/4"></div></div>
@@ -100,39 +68,24 @@
     </div>
 
     <div id="chat-interface" class="hidden flex h-screen w-full">
-
         <div class="w-72 bg-gray-50 border-r border-gray-200 flex flex-col hidden md:flex">
             <div class="p-5 border-b border-gray-200 flex items-center justify-between">
                 <span class="font-bold text-gray-700">Your Sessions</span>
-                <button onclick="startNewChat()" class="bg-white text-blue-600 border border-blue-100 hover:bg-blue-50 p-2 rounded-lg transition shadow-sm" title="New Chat">
-                    <i class="fa-solid fa-plus"></i>
-                </button>
+                <button onclick="startNewSession()" class="bg-white text-blue-600 border border-blue-100 hover:bg-blue-50 p-2 rounded-lg transition shadow-sm" title="New Session"><i class="fa-solid fa-plus"></i></button>
             </div>
             <div id="thread-list" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
-
-            <button onclick="backToHome()" class="p-4 text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2 border-t hover:bg-gray-100 transition">
-                <i class="fa-solid fa-arrow-left"></i> Back to Home
-            </button>
+            <button onclick="backToHome()" class="p-4 text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2 border-t hover:bg-gray-100 transition"><i class="fa-solid fa-arrow-left"></i> Back to Home</button>
         </div>
 
         <div class="flex-1 flex flex-col bg-white relative">
             <div class="h-16 border-b border-gray-100 flex items-center px-6 justify-between bg-white/90 backdrop-blur-md sticky top-0 z-20">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white shadow-md">
-                        <i class="fa-solid fa-robot text-sm"></i>
-                    </div>
-                    <div>
-                        <h2 class="font-bold text-gray-800 text-sm">PathFinder Agent</h2>
-                        <span class="text-[10px] text-green-500 flex items-center gap-1 font-medium bg-green-50 px-2 py-0.5 rounded-full w-fit">
-                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Online
-                        </span>
-                    </div>
+                    <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white shadow-md"><i class="fa-solid fa-robot text-sm"></i></div>
+                    <div><h2 class="font-bold text-gray-800 text-sm">PathFinder Agent</h2><span class="text-[10px] text-green-500 flex items-center gap-1 font-medium bg-green-50 px-2 py-0.5 rounded-full w-fit">Online</span></div>
                 </div>
                 <div class="flex items-center gap-4">
-                    <button onclick="toggleAuthModal()" id="chat-auth-btn" class="text-sm font-semibold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-full transition">
-                        Login / Register
-                    </button>
-                    <button onclick="clearChat()" class="text-xs text-red-400 hover:text-red-600 hover:underline">Clear</button>
+                    <button onclick="checkAuthAndToggle()" id="chat-auth-btn" class="text-sm font-semibold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-full transition">Login / Register</button>
+                    <button onclick="clearChatUI()" class="text-xs text-red-400 hover:text-red-600">Clear View</button>
                 </div>
             </div>
 
@@ -140,14 +93,8 @@
 
             <div class="p-4 bg-white border-t border-gray-100 absolute bottom-0 w-full z-20">
                 <div class="max-w-4xl mx-auto relative flex items-center gap-3">
-                    <input type="text" id="user-input"
-                        class="w-full bg-gray-100 text-gray-800 rounded-2xl pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition shadow-sm border border-transparent focus:border-blue-200"
-                        placeholder="Type your goal (e.g., Learn SQL for Data Science)..."
-                        onkeypress="handleEnter(event)">
-                    <button onclick="sendMessage()"
-                        class="absolute right-3 bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md transition transform hover:scale-105 active:scale-95">
-                        <i class="fa-solid fa-paper-plane text-sm"></i>
-                    </button>
+                    <input type="text" id="user-input" class="w-full bg-gray-100 text-gray-800 rounded-2xl pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm" placeholder="Type your goal..." onkeypress="handleEnter(event)">
+                    <button onclick="sendMessage()" class="absolute right-3 bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md transition transform hover:scale-105"><i class="fa-solid fa-paper-plane text-sm"></i></button>
                 </div>
             </div>
         </div>
@@ -155,16 +102,59 @@
 
     <script>
         const API_URL = "https://pathfinder-swgh.onrender.com";
-        let currentUser = null;
-        let currentThreadId = null;
-
-        // --- AUTH LOGIC ---
+        let currentUser = localStorage.getItem("pathfinder_user");
+        let currentThreadId = localStorage.getItem("pathfinder_thread");
         let isRegistering = false;
 
-        function toggleAuthModal() {
-            document.getElementById('auth-modal').classList.toggle('hidden');
+        window.onload = function() {
+            if (currentUser) {
+                updateAuthUI(true);
+                if (!currentThreadId) currentThreadId = "user_" + Date.now();
+                loadSidebarThreads();
+            }
+        };
+
+        function backToHome() {
+            document.getElementById('chat-interface').classList.add('hidden');
+            document.getElementById('landing-page').classList.remove('hidden');
         }
 
+        function enterChatView(forceNew = false) {
+            document.getElementById('landing-page').classList.add('hidden');
+            document.getElementById('chat-interface').classList.remove('hidden');
+            if (forceNew || !currentThreadId) {
+                startNewSession();
+            } else {
+                if(document.getElementById('chat-box').innerHTML === "") {
+                    loadHistory(currentThreadId);
+                }
+            }
+            if(currentUser) loadSidebarThreads();
+        }
+
+        function checkAuthAndToggle() {
+            if(currentUser) { handleLogout(); } else { toggleAuthModal(); }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem("pathfinder_user");
+            localStorage.removeItem("pathfinder_thread");
+            currentUser = null;
+            currentThreadId = null;
+            updateAuthUI(false);
+            document.getElementById('thread-list').innerHTML = '';
+            document.getElementById('chat-box').innerHTML = '';
+            backToHome();
+        }
+
+        function startNewSession() {
+            currentThreadId = (currentUser ? "user_" : "guest_") + Date.now();
+            localStorage.setItem("pathfinder_thread", currentThreadId);
+            document.getElementById('chat-box').innerHTML = '';
+            addMessage("bot", "Hello! I am PathFinder. What skill would you like to master today?");
+        }
+
+        function toggleAuthModal() { document.getElementById('auth-modal').classList.toggle('hidden'); }
         function toggleAuthMode() {
             isRegistering = !isRegistering;
             document.getElementById('auth-title').innerText = isRegistering ? "Register" : "Login";
@@ -176,8 +166,6 @@
             const user = document.getElementById('auth-user').value;
             const pass = document.getElementById('auth-pass').value;
             const endpoint = isRegistering ? "/register" : "/login";
-
-            if(!user || !pass) return alert("Please fill in fields");
 
             try {
                 const res = await fetch(API_URL + endpoint, {
@@ -192,85 +180,87 @@
                         alert("Registered! Please login.");
                         toggleAuthMode();
                     } else {
-                        // LOGIN SUCCESS
                         currentUser = user;
-                        currentThreadId = "user_" + Date.now();
+                        localStorage.setItem("pathfinder_user", user);
                         toggleAuthModal();
                         updateAuthUI(true);
-
-                        // If we are on landing page, go to chat
-                        if(!document.getElementById('landing-page').classList.contains('hidden')){
-                            startNewChat();
-                        } else {
-                            // If already on chat, clear and greet
-                            document.getElementById('chat-box').innerHTML = '';
-                            addMessage("bot", `Welcome back, ${user}!`);
+                        await loadSidebarThreads();
+                        if(!document.getElementById('chat-interface').classList.contains('hidden')){
+                           startNewSession();
+                           addMessage("bot", `Welcome back, ${user}!`);
                         }
                     }
-                } else {
-                    alert(data.message);
-                }
+                } else { alert(data.message); }
             } catch (e) { alert("Connection Error"); }
         }
 
         function updateAuthUI(loggedIn) {
-            const chatBtn = document.getElementById('chat-auth-btn');
-            const landingBtn = document.getElementById('landing-auth-btn');
-
-            if (loggedIn) {
-                const text = `Logout (${currentUser})`;
-                // Update Chat Button
-                chatBtn.innerText = text;
-                chatBtn.onclick = handleLogout;
-                // Update Landing Button
-                landingBtn.innerText = text;
-                landingBtn.onclick = handleLogout;
-            } else {
-                const text = "Login / Register";
-                chatBtn.innerText = text;
-                chatBtn.onclick = toggleAuthModal;
-                landingBtn.innerText = text;
-                landingBtn.onclick = toggleAuthModal;
-            }
+            const btns = [document.getElementById('chat-auth-btn'), document.getElementById('landing-auth-btn')];
+            btns.forEach(btn => {
+                btn.innerText = loggedIn ? `Logout (${currentUser})` : "Login / Register";
+            });
         }
 
-        function handleLogout() {
-            currentUser = null;
-            currentThreadId = "guest_" + Date.now();
-            updateAuthUI(false);
-            if(document.getElementById('chat-interface').classList.contains('hidden')) {
-                // on landing page
-            } else {
-                document.getElementById('chat-box').innerHTML = '';
-                addMessage("bot", "Logged out. You are in Guest Mode.");
-            }
+        async function loadSidebarThreads() {
+            if (!currentUser) return;
+            try {
+                const res = await fetch(`${API_URL}/threads/${currentUser}`);
+                const data = await res.json();
+                const list = document.getElementById('thread-list');
+                list.innerHTML = '';
+
+                if(!data.threads || data.threads.length === 0) {
+                    list.innerHTML = '<div class="text-xs text-gray-400 text-center mt-4">No saved history yet</div>';
+                    return;
+                }
+
+                data.threads.forEach(tid => {
+                    const btn = document.createElement('button');
+                    let dateStr = "Session";
+                    try {
+                        const ts = parseInt(tid.split('_')[1]);
+                        if(!isNaN(ts)) dateStr = new Date(ts).toLocaleDateString() + " " + new Date(ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    } catch(e){}
+
+                    btn.className = "w-full text-left p-3 rounded-lg hover:bg-blue-50 text-sm text-gray-700 flex items-center gap-2 transition border border-transparent hover:border-blue-100 mb-1";
+                    btn.innerHTML = `<i class="fa-regular fa-comments text-blue-500"></i> <span class="truncate">${dateStr}</span>`;
+                    if(tid === currentThreadId) btn.classList.add("bg-blue-50", "border-blue-100");
+                    btn.onclick = () => loadHistory(tid);
+                    list.appendChild(btn);
+                });
+            } catch (e) { console.error(e); }
         }
 
-        // --- NAVIGATION LOGIC ---
-        function startNewChat() {
-            if(!currentThreadId) currentThreadId = (currentUser ? "user_" : "guest_") + Date.now();
-
-            switchView('chat');
+        async function loadHistory(threadId) {
+            currentThreadId = threadId;
+            localStorage.setItem("pathfinder_thread", currentThreadId);
             document.getElementById('chat-box').innerHTML = '';
-            addMessage("bot", "Hello! I am PathFinder. What skill would you like to master today?");
-            renderThreadList();
+            loadSidebarThreads();
+
+            try {
+                const res = await fetch(`${API_URL}/history`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username: currentUser, thread_id: threadId })
+                });
+                const data = await res.json();
+
+                if(!data.history || data.history.length === 0) {
+                    addMessage("bot", "Starting new session...");
+                } else {
+                    data.history.forEach(msg => {
+                        if(msg.content.includes("[PLAN_CREATED]")) {
+                            const cleanText = msg.content.split("\n\n[PLAN_CREATED]")[0];
+                            addMessage(msg.role === 'user' ? 'user' : 'bot', cleanText);
+                        } else {
+                             addMessage(msg.role === 'user' ? 'user' : 'bot', msg.content);
+                        }
+                    });
+                }
+            } catch (e) { console.error(e); }
         }
 
-        function switchView(view) {
-            if (view === 'chat') {
-                document.getElementById('landing-page').classList.add('hidden');
-                document.getElementById('chat-interface').classList.remove('hidden');
-            } else {
-                document.getElementById('chat-interface').classList.add('hidden');
-                document.getElementById('landing-page').classList.remove('hidden');
-            }
-        }
-
-        function backToHome() {
-            switchView('home');
-        }
-
-        // --- CHAT LOGIC ---
+        // --- FIXED SENDMESSAGE FUNCTION ---
         async function sendMessage(manualMessage = null) {
             const inputField = document.getElementById("user-input");
             const message = manualMessage || inputField.value.trim();
@@ -280,69 +270,77 @@
             inputField.value = "";
             showTyping(true);
 
+            if(!currentThreadId) currentThreadId = (currentUser ? "user_" : "guest_") + Date.now();
+
             try {
+                // FAIL-SAFE PAYLOAD: We send the text in multiple keys so the server finds it regardless of naming.
+                const payload = {
+                    message: message,       // Common Standard
+                    user_message: message,  // Your specific error implies this
+                    query: message,         // Another common standard
+                    thread_id: currentThreadId,
+                    username: currentUser
+                };
+
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        message: message,
-                        thread_id: currentThreadId,
-                        username: currentUser
-                    })
+                    body: JSON.stringify(payload)
                 });
+
+                if (!response.ok) {
+                    throw new Error(`Server returned status: ${response.status}`);
+                }
 
                 const data = await response.json();
                 showTyping(false);
 
-                if (data.status === "error") {
-                    addMessage("bot", "⚠️ " + (data.reply || "Server Error"));
-                    return;
-                }
+                const botText = data.reply || data.response || data.message || "No text response received.";
 
-                if (data.reply) addMessage("bot", data.reply);
+                addMessage("bot", botText);
+
                 if (data.plan) {
                     renderPlanCard(data.plan);
                     renderActionButtons(data.plan.topic);
                 } else {
-                     renderActionButtons(message);
+                    renderActionButtons(message);
                 }
+
+                if(currentUser) loadSidebarThreads();
 
             } catch (error) {
                 showTyping(false);
-                addMessage("bot", "⚠️ Connection Error.");
                 console.error(error);
+                addMessage("bot", `⚠️ Error: ${error.message || "Unknown error"}. Check console.`);
             }
         }
 
-        // --- RENDERING LOGIC ---
+        function addMessage(role, text) {
+            const chatBox = document.getElementById("chat-box");
+            const div = document.createElement("div");
+            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} fade-in`;
+            div.innerHTML = `
+                <div class="max-w-[85%] md:max-w-[75%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
+                    role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                }">
+                    <div class="markdown-body" style="${role==='user'?'color:white':''}">${marked.parse(text || "")}</div>
+                </div>`;
+            chatBox.appendChild(div);
+            scrollToBottom();
+        }
+
         function renderPlanCard(plan) {
             const chatBox = document.getElementById("chat-box");
             const div = document.createElement("div");
             div.className = "w-full max-w-3xl mt-4 fade-in self-start";
-
             let html = `
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
-                    <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
-                        <h3 class="font-bold text-lg"><i class="fa-solid fa-map"></i> Learning Path: ${plan.topic}</h3>
-                    </div>
-                    <div class="p-6 space-y-6">
-            `;
-
-            if (plan.weeks && Array.isArray(plan.weeks)) {
-                plan.weeks.forEach((week, weekIndex) => {
-                    html += `
-                        <div class="border-l-4 border-blue-200 pl-4">
-                            <h4 class="font-bold text-gray-800 mb-2">Week ${weekIndex + 1}: ${week.title}</h4>
-                            <div class="space-y-2">
-                                ${week.days.map((d, dayIndex) => `
-                                    <label class="flex items-start gap-3 cursor-pointer group">
-                                        <input type="checkbox" class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
-                                        <span class="text-sm text-gray-600 group-hover:text-gray-800 transition"><strong class="text-gray-700">${d.day}:</strong> ${d.task}</span>
-                                    </label>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `;
+                    <div class="bg-blue-600 p-4 text-white"><h3 class="font-bold text-lg">Path: ${plan.topic}</h3></div>
+                    <div class="p-6 space-y-6">`;
+            if (plan.weeks) {
+                plan.weeks.forEach((week, i) => {
+                    html += `<div class="border-l-4 border-blue-200 pl-4"><h4 class="font-bold text-gray-800 mb-2">Week ${i + 1}: ${week.title}</h4>
+                            <div class="space-y-2">${week.days.map((d) => `<label class="flex items-start gap-3 cursor-pointer group"><input type="checkbox" class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300"><span class="text-sm text-gray-600 group-hover:text-gray-800 transition"><strong>${d.day}:</strong> ${d.task}</span></label>`).join('')}</div></div>`;
                 });
             }
             html += `</div></div>`;
@@ -361,9 +359,9 @@
                 });
                 const data = await response.json();
                 btn.remove();
-                if (data.questions && data.questions.length > 0) renderQuizCard(data);
-                else addMessage("bot", "Could not generate quiz.");
+                if (data.questions) renderQuizCard(data);
             } catch (e) {
+                btn.innerHTML = "Error";
                 addMessage("bot", "Error generating quiz.");
             }
         }
@@ -372,35 +370,9 @@
             const chatBox = document.getElementById("chat-box");
             const div = document.createElement("div");
             div.className = "w-full max-w-2xl mt-6 bg-gray-900 text-white p-6 rounded-2xl shadow-xl border border-gray-700 fade-in";
-
-            let html = `
-                <div class="flex items-center justify-between mb-6 border-b border-gray-700 pb-4">
-                    <h3 class="text-xl font-bold text-blue-400"><i class="fa-solid fa-clipboard-question"></i> ${quizData.topic}</h3>
-                    <span class="text-xs text-gray-400">Interactive Quiz</span>
-                </div>
-            `;
-
+            let html = `<h3 class="text-xl font-bold text-blue-400 mb-4">${quizData.topic}</h3>`;
             quizData.questions.forEach((q, idx) => {
-                const qId = `q-${Date.now()}-${idx}`;
-                html += `
-                    <div class="mb-8 last:mb-0">
-                        <p class="font-semibold text-gray-100 mb-4 text-lg">${idx + 1}. ${q.question}</p>
-                        <div class="grid grid-cols-1 gap-3 pl-2">
-                            ${q.options.map((opt) => `
-                                <label class="flex items-center gap-3 bg-gray-800 p-3 rounded-lg border border-gray-700 cursor-pointer hover:bg-gray-700 transition group">
-                                    <input type="radio" name="${qId}" value="${opt}" class="form-radio text-blue-500 h-4 w-4">
-                                    <span class="text-sm text-gray-300 group-hover:text-white">${opt}</span>
-                                </label>
-                            `).join('')}
-                        </div>
-                        <details class="mt-4 text-sm">
-                            <summary class="text-blue-400 cursor-pointer hover:text-blue-300 font-medium">Reveal Answer</summary>
-                            <div class="mt-2 p-3 bg-green-900/30 border border-green-800 rounded text-green-300">
-                                ✅ <strong>${q.correct_answer}</strong>
-                            </div>
-                        </details>
-                    </div>
-                `;
+                 html += `<div class="mb-6"><p class="font-bold mb-2">${idx+1}. ${q.question}</p><div class="grid gap-2">${q.options.map(o=>`<div class="bg-gray-800 p-2 rounded text-sm hover:bg-gray-700 cursor-pointer">${o}</div>`).join('')}</div><details class="mt-2 text-xs text-green-400 cursor-pointer"><summary>Answer</summary>${q.correct_answer}</details></div>`;
             });
             div.innerHTML = html;
             chatBox.appendChild(div);
@@ -408,35 +380,11 @@
         }
 
         function renderActionButtons(topic) {
-            const chatBox = document.getElementById("chat-box");
-            document.querySelectorAll('.action-buttons-container').forEach(e => e.remove());
-
-            const div = document.createElement("div");
-            div.className = "action-buttons-container flex flex-wrap gap-3 mt-4 ml-2 fade-in";
-            div.innerHTML = `
-                <button onclick="handleQuizClick(this, '${topic}')" class="flex items-center gap-2 bg-white text-purple-600 px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-purple-50 border border-purple-200 shadow-sm transition transform hover:-translate-y-1">
-                    <i class="fa-solid fa-graduation-cap"></i> Take a Quiz
-                </button>
-            `;
-            chatBox.appendChild(div);
-            scrollToBottom();
-        }
-
-        function addMessage(role, text) {
+            const safeTopic = topic.replace(/'/g, "\\'");
             const chatBox = document.getElementById("chat-box");
             const div = document.createElement("div");
-            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} fade-in`;
-
-            div.innerHTML = `
-                <div class="max-w-[85%] md:max-w-[75%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
-                    role === 'user'
-                    ? 'bg-blue-600 text-white rounded-br-none'
-                    : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
-                }">
-                    <div class="markdown-body" style="${role==='user'?'color:white':''}">
-                        ${marked.parse(text)}
-                    </div>
-                </div>`;
+            div.className = "flex flex-wrap gap-3 mt-4 ml-2 fade-in";
+            div.innerHTML = `<button onclick="handleQuizClick(this, '${safeTopic}')" class="bg-white text-purple-600 px-5 py-2.5 rounded-full text-sm font-semibold border border-purple-200 shadow-sm transition hover:bg-purple-50">Take a Quiz</button>`;
             chatBox.appendChild(div);
             scrollToBottom();
         }
@@ -453,15 +401,9 @@
                 scrollToBottom();
             } else if (!show && existing) existing.remove();
         }
-
-        function scrollToBottom() {
-            const chatBox = document.getElementById("chat-box");
-            setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 50);
-        }
-
-        function clearChat() { document.getElementById('chat-box').innerHTML = ''; }
-        function handleEnter(e) { if(e.key === "Enter") sendMessage(); }
-        function renderThreadList() { /* Placeholder for thread rendering */ }
+        function scrollToBottom() { const b = document.getElementById("chat-box"); setTimeout(() => b.scrollTop = b.scrollHeight, 50); }
+        function clearChatUI() { document.getElementById('chat-box').innerHTML = ''; }
+        function handleEnter(e) { if(e.key==="Enter") sendMessage(); }
     </script>
 </body>
 </html>
