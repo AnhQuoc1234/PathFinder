@@ -6,8 +6,9 @@
     <title>PathFinder - AI Learning Companion</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
@@ -19,60 +20,60 @@
 
     <style>
         body { font-family: 'Poppins', sans-serif; }
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+
         /* Markdown Styles */
-        .markdown-body h2 { font-size: 1.25rem; font-weight: 700; color: #1d4ed8; margin-top: 1rem; margin-bottom: 0.5rem; }
-        .markdown-body h3 { font-size: 1.1rem; font-weight: 600; color: #2563eb; margin-top: 0.8rem; }
-        .markdown-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.8rem; }
-        .markdown-body ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.8rem; }
-        .markdown-body strong { color: #1e40af; }
-        .markdown-body p { margin-bottom: 0.8rem; line-height: 1.6; }
-        .markdown-body code { background-color: #f3f4f6; padding: 0.2rem 0.4rem; rounded: 0.25rem; font-family: monospace; color: #e11d48; }
+        .markdown-body h3 { font-size: 1.1rem; font-weight: 600; color: #2563eb; margin-top: 0.5rem; }
+        .markdown-body ul { list-style-type: disc; padding-left: 1.2rem; }
+        .markdown-body p { margin-bottom: 0.5rem; }
 
         /* Mermaid Container */
-        .mermaid { display: flex; justify-content: center; padding: 10px; }
+        .mermaid { display: flex; justify-content: center; background: white; padding: 20px; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-white text-gray-800 h-screen flex flex-col overflow-hidden">
 
     <div id="landing-page" class="flex-1 flex flex-col items-center justify-center p-6 text-center fade-in">
         <div class="absolute top-8 left-8 flex items-center gap-2">
-            <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">P</div>
-            <span class="font-bold text-xl text-gray-700">PathFinder AI</span>
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg">P</div>
+            <span class="font-bold text-2xl text-gray-800 tracking-tight">PathFinder</span>
         </div>
 
-        <div class="max-w-4xl grid md:grid-cols-2 gap-12 items-center">
-            <div class="text-left space-y-6">
-                <h1 class="text-5xl font-bold leading-tight text-gray-900">
+        <div class="max-w-5xl grid md:grid-cols-2 gap-12 items-center">
+            <div class="text-left space-y-8">
+                <h1 class="text-5xl md:text-6xl font-bold leading-tight text-gray-900">
                     Master any Skill <br>
-                    <span class="text-blue-600">In Weeks, Not Years.</span>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">In Weeks.</span>
                 </h1>
-                <p class="text-gray-500 text-lg border-l-4 border-yellow-400 pl-4">
-                    AI-generated roadmaps, visual learning paths, and personalized quizzes.
+                <p class="text-gray-500 text-lg border-l-4 border-yellow-400 pl-6 leading-relaxed">
+                    Generate structured learning roadmaps, visualize your path with mind maps, and test your knowledge with interactive AI quizzes.
                 </p>
                 <button onclick="startNewChat()"
-                    class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold py-4 px-8 rounded-full shadow-lg transition transform hover:scale-105 flex items-center gap-2">
-                    START LEARNING <i class="fa-solid fa-arrow-right"></i>
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold py-4 px-10 rounded-full shadow-xl transition transform hover:scale-105 flex items-center gap-3">
+                    Start Learning <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
-            <div class="hidden md:block">
-                <div class="bg-blue-50 rounded-[3rem] p-10 relative">
-                    <i class="fa-solid fa-layer-group text-blue-200 text-9xl absolute top-10 right-10 opacity-50"></i>
-                    <div class="bg-white p-6 rounded-2xl shadow-xl relative z-10">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-3 h-3 bg-red-400 rounded-full"></div>
-                            <div class="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                            <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+
+            <div class="hidden md:block relative">
+                <div class="absolute inset-0 bg-gradient-to-tr from-blue-100 to-purple-100 rounded-full opacity-50 blur-3xl"></div>
+                <div class="bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-2xl relative border border-white">
+                    <div class="flex gap-4 mb-6">
+                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600"><i class="fa-solid fa-code"></i></div>
+                        <div>
+                            <h3 class="font-bold text-lg">Python Mastery</h3>
+                            <p class="text-xs text-gray-500">4 Week Plan</p>
                         </div>
-                        <div class="space-y-3">
-                            <div class="h-4 bg-gray-100 rounded w-3/4"></div>
-                            <div class="h-4 bg-gray-100 rounded w-1/2"></div>
-                            <div class="h-32 bg-blue-50 rounded border-2 border-dashed border-blue-200 flex items-center justify-center text-blue-400">
-                                Visual Roadmap Generated
-                            </div>
-                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="h-2 bg-gray-100 rounded-full w-full overflow-hidden"><div class="h-full bg-blue-500 w-3/4"></div></div>
+                        <div class="flex justify-between text-xs text-gray-400"><span>Progress</span><span>75%</span></div>
                     </div>
                 </div>
             </div>
@@ -80,41 +81,46 @@
     </div>
 
     <div id="chat-interface" class="hidden flex h-screen w-full">
-        <div class="w-64 bg-gray-50 border-r border-gray-200 flex flex-col hidden md:flex">
-            <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-                <span class="font-bold text-gray-700">Sessions</span>
-                <button onclick="startNewChat()" class="text-blue-600 hover:bg-blue-100 p-2 rounded-full transition"><i class="fa-solid fa-plus"></i></button>
+
+        <div class="w-72 bg-gray-50 border-r border-gray-200 flex flex-col hidden md:flex">
+            <div class="p-5 border-b border-gray-200 flex items-center justify-between">
+                <span class="font-bold text-gray-700">Your Sessions</span>
+                <button onclick="startNewChat()" class="bg-white text-blue-600 border border-blue-100 hover:bg-blue-50 p-2 rounded-lg transition shadow-sm" title="New Chat">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
             </div>
-            <div id="thread-list" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
-            <button onclick="backToHome()" class="p-4 text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2 border-t">
+            <div id="thread-list" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
+            <button onclick="backToHome()" class="p-4 text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2 border-t hover:bg-gray-100 transition">
                 <i class="fa-solid fa-arrow-left"></i> Back to Home
             </button>
         </div>
 
-        <div class="flex-1 flex flex-col bg-white">
-            <div class="h-16 border-b border-gray-100 flex items-center px-6 justify-between bg-white shadow-sm z-10">
+        <div class="flex-1 flex flex-col bg-white relative">
+            <div class="h-16 border-b border-gray-100 flex items-center px-6 justify-between bg-white/90 backdrop-blur-md sticky top-0 z-20">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                        <i class="fa-solid fa-robot"></i>
+                    <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                        <i class="fa-solid fa-robot text-sm"></i>
                     </div>
                     <div>
-                        <h2 class="font-bold text-gray-800">PathFinder Agent</h2>
-                        <span class="text-xs text-green-500 flex items-center gap-1">● Online</span>
+                        <h2 class="font-bold text-gray-800 text-sm">PathFinder Agent</h2>
+                        <span class="text-[10px] text-green-500 flex items-center gap-1 font-medium bg-green-50 px-2 py-0.5 rounded-full w-fit">
+                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Online
+                        </span>
                     </div>
                 </div>
-                <button onclick="clearAllData()" class="text-xs text-red-400 hover:text-red-600 underline">Reset History</button>
+                <button onclick="clearAllData()" class="text-xs text-red-400 hover:text-red-600 hover:underline">Clear History</button>
             </div>
 
-            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50 pb-24"></div>
+            <div id="chat-box" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 bg-gray-50/50 pb-32"></div>
 
-            <div class="p-4 bg-white border-t border-gray-100">
-                <div class="max-w-4xl mx-auto relative flex items-center gap-2">
+            <div class="p-4 bg-white border-t border-gray-100 absolute bottom-0 w-full z-20">
+                <div class="max-w-4xl mx-auto relative flex items-center gap-3">
                     <input type="text" id="user-input"
-                        class="w-full bg-gray-100 text-gray-800 rounded-full pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-inner"
-                        placeholder="Type your goal (e.g., Learn Python in 4 weeks)..."
+                        class="w-full bg-gray-100 text-gray-800 rounded-2xl pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition shadow-sm border border-transparent focus:border-blue-200"
+                        placeholder="Type your goal (e.g., Learn SQL for Data Science)..."
                         onkeypress="handleEnter(event)">
                     <button onclick="sendMessage()"
-                        class="absolute right-2 bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition hover:scale-110">
+                        class="absolute right-3 bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md transition transform hover:scale-105 active:scale-95">
                         <i class="fa-solid fa-paper-plane text-sm"></i>
                     </button>
                 </div>
@@ -123,15 +129,15 @@
     </div>
 
     <script>
-        // --- CONFIG ---
-        const API_URL = "https://pathfinder-swgh.onrender.com"; // Your Backend URL
+        // --- CONFIGURATION ---
+        const API_URL = "http://127.0.0.1:8000"; // Ensure this matches your backend
 
-        // --- STATE ---
+        // --- STATE MANAGEMENT ---
         let currentThreadId = null;
         let threads = [];
-        let currentTopic = ""; // Used for the Quiz context
+        let currentTopic = "";
 
-        // Initialize
+        // Load History
         try {
             const stored = localStorage.getItem('pathfinder_threads');
             if (stored) threads = JSON.parse(stored);
@@ -139,8 +145,7 @@
 
         document.addEventListener("DOMContentLoaded", renderThreadList);
 
-        // --- CORE FUNCTIONS ---
-
+        // --- NAVIGATION ---
         function startNewChat() {
             currentThreadId = "thread_" + Date.now();
             currentTopic = "";
@@ -163,21 +168,25 @@
             }
         }
 
+        // --- CORE CHAT LOGIC ---
         async function sendMessage(manualMessage = null, isHidden = false) {
             const inputField = document.getElementById("user-input");
             const message = manualMessage || inputField.value.trim();
             if (!message) return;
 
+            // 1. User Message UI
             if (!isHidden) {
                 addMessage("user", message);
                 inputField.value = "";
                 updateThreadTitle(currentThreadId, message);
-                currentTopic = message; // Update topic context
+                currentTopic = message;
             }
 
+            // 2. Loading State
             showTyping(true);
 
             try {
+                // 3. Backend Call
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -188,51 +197,69 @@
                 showTyping(false);
 
                 if (data.status === "error") {
-                    addMessage("bot", "⚠️ " + data.reply);
+                    addMessage("bot", "⚠️ " + (data.reply || "Server Error"));
                     return;
                 }
 
-                // 1. Render Text Reply
-                if (data.reply) addMessage("bot", data.reply);
+                // 4. Handle Response Types
 
-                // 2. Render Plan (if structured JSON)
+                // A. Text Reply
+                if (data.reply) {
+                    addMessage("bot", data.reply);
+                }
+
+                // B. Structured Plan (JSON)
                 if (data.plan) {
                     renderPlanCard(data.plan);
-                    // Show actions if we have a plan
                     renderActionButtons(data.plan.topic || currentTopic);
                 }
-                // 3. Fallback: If no structured plan but long text, show buttons anyway
-                else if (data.reply.length > 200) {
+                // C. Fallback: Long text reply usually means a plan was generated in text
+                else if (data.reply.length > 150) {
                      renderActionButtons(currentTopic);
+                }
+
+                // D. Mermaid Diagram (Directly from backend)
+                if (data.mermaid) {
+                    renderMermaid(data.mermaid);
+                }
+
+                // E. Quiz (Directly from backend)
+                if (data.quiz) {
+                    renderQuizCard(data.quiz);
                 }
 
             } catch (error) {
                 showTyping(false);
-                addMessage("bot", "⚠️ Connection Error. Is the backend running?");
+                addMessage("bot", "⚠️ Connection Error. Ensure backend is running at " + API_URL);
                 console.error(error);
             }
         }
 
-        // --- SPECIAL FEATURES ---
+        // --- FEATURE HANDLERS ---
 
         async function handleVisualizeClick(btn, topic) {
             btn.parentElement.remove(); // Remove buttons
-            addMessage("bot", "Generating visual roadmap...");
+            addMessage("bot", "Designing your visual roadmap...");
             showTyping(true);
 
-            // Ask specifically for mermaid code
-            // Note: We send this to chat, and graph.py handles "diagram" keyword
+            // We send a hidden message to the chat endpoint.
+            // The Agent Graph should have a node to handle "diagram" or "visualize" requests.
+            // Alternatively, create a dedicated /visualize endpoint in main.py.
             try {
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message: "Generate a mermaid diagram for " + topic, thread_id: currentThreadId })
+                    body: JSON.stringify({
+                        message: "Generate a mermaid diagram for " + topic,
+                        thread_id: currentThreadId
+                    })
                 });
                 const data = await response.json();
                 showTyping(false);
 
-                // Extract code from response
-                const code = extractMermaidCode(data.reply);
+                // Use the structured field if available, else regex extract
+                const code = data.mermaid || extractMermaidCode(data.reply);
+
                 if (code) {
                     renderMermaid(code);
                 } else {
@@ -243,15 +270,15 @@
 
         async function handleQuizClick(btn, topic) {
             btn.parentElement.remove();
-            addMessage("bot", "Creating a practice quiz for you...");
+            addMessage("bot", "Preparing your knowledge check...");
             showTyping(true);
 
             try {
-                // Hit the specific QUIZ endpoint
+                // Direct call to Quiz Endpoint
                 const response = await fetch(`${API_URL}/quiz`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ topic: topic })
+                    body: JSON.stringify({ topic: topic, context: "Based on previous plan" })
                 });
                 const data = await response.json();
                 showTyping(false);
@@ -259,7 +286,7 @@
                 if (data.questions && data.questions.length > 0) {
                     renderQuizCard(data);
                 } else {
-                    addMessage("bot", "Sorry, I couldn't generate a quiz right now.");
+                    addMessage("bot", "Unable to generate quiz at this moment.");
                 }
             } catch (e) {
                 showTyping(false);
@@ -267,82 +294,126 @@
             }
         }
 
-        // --- RENDERING ---
+        // --- UI RENDERING COMPONENTS ---
 
         function addMessage(role, text) {
             const chatBox = document.getElementById("chat-box");
             const div = document.createElement("div");
             div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} fade-in`;
 
-            // Clean markdown blocks for display if necessary
-            const cleanText = text.replace(/```mermaid[\s\S]*?```/g, "[Visual Diagram Generated Below]");
+            // Remove raw mermaid blocks from text to avoid ugliness
+            const cleanText = text.replace(/```mermaid[\s\S]*?```/g, "");
 
             div.innerHTML = `
-                <div class="max-w-[85%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
-                    role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                <div class="max-w-[85%] md:max-w-[75%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
+                    role === 'user'
+                    ? 'bg-blue-600 text-white rounded-br-none'
+                    : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
                 }">
                     <div class="markdown-body" style="${role==='user'?'color:white':''}">
                         ${marked.parse(cleanText)}
                     </div>
                 </div>`;
             chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
+            scrollToBottom();
         }
 
-        function renderActionButtons(topic) {
+        function renderPlanCard(plan) {
             const chatBox = document.getElementById("chat-box");
             const div = document.createElement("div");
-            div.className = "flex gap-3 mt-2 ml-2 fade-in";
-            div.innerHTML = `
-                <button onclick="handleVisualizeClick(this, '${topic}')" class="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-xs font-bold hover:bg-blue-100 border border-blue-200 transition">
-                    <i class="fa-solid fa-diagram-project"></i> Visualize
-                </button>
-                <button onclick="handleQuizClick(this, '${topic}')" class="flex items-center gap-2 bg-purple-50 text-purple-600 px-4 py-2 rounded-full text-xs font-bold hover:bg-purple-100 border border-purple-200 transition">
-                    <i class="fa-solid fa-list-check"></i> Take Quiz
-                </button>
+            div.className = "w-full max-w-3xl mt-4 fade-in self-start";
+
+            // Assuming plan structure: { topic: "...", weeks: [ { title: "...", days: [...] } ] }
+            // If the LLM returns a different JSON structure, adjust this parsing.
+
+            let html = `
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
+                    <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
+                        <h3 class="font-bold text-lg"><i class="fa-solid fa-map"></i> Learning Path: ${plan.topic || "Custom Plan"}</h3>
+                        <span class="text-xs bg-blue-500 px-2 py-1 rounded">Generated by AI</span>
+                    </div>
+                    <div class="p-6 space-y-6">
             `;
+
+            // Render Weeks
+            if (plan.weeks && Array.isArray(plan.weeks)) {
+                plan.weeks.forEach((week, index) => {
+                    html += `
+                        <div class="border-l-4 border-blue-200 pl-4">
+                            <h4 class="font-bold text-gray-800 mb-2">Week ${index + 1}: ${week.title || "Focus Area"}</h4>
+                            <ul class="text-sm text-gray-600 space-y-1">
+                                ${week.days ? week.days.map(d => `
+                                    <li class="flex gap-2 items-start">
+                                        <i class="fa-solid fa-check-circle text-blue-400 mt-1"></i>
+                                        <span><strong class="text-gray-700">${d.day || ""}:</strong> ${d.task || d}</span>
+                                    </li>
+                                `).join('') : '<li>Check detailed guide.</li>'}
+                            </ul>
+                        </div>
+                    `;
+                });
+            } else {
+                html += `<div class="text-gray-500 italic">Structured plan data not found. Refer to the chat message above.</div>`;
+            }
+
+            html += `</div></div>`;
+            div.innerHTML = html;
             chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
+            scrollToBottom();
         }
 
         function renderMermaid(code) {
             const chatBox = document.getElementById("chat-box");
             const id = "mermaid-" + Date.now();
             const div = document.createElement("div");
-            div.className = "w-full max-w-3xl mt-4 bg-white p-4 rounded-xl shadow border border-gray-100 fade-in";
-            div.innerHTML = `<div class="mermaid" id="${id}">${code}</div>`;
+            div.className = "w-full max-w-4xl mt-4 bg-white p-2 md:p-6 rounded-2xl shadow-lg border border-gray-100 fade-in flex flex-col items-center overflow-hidden";
+
+            div.innerHTML = `
+                <div class="w-full flex justify-between items-center mb-4 border-b pb-2">
+                     <span class="font-bold text-gray-700 text-sm"><i class="fa-solid fa-diagram-project"></i> Knowledge Graph</span>
+                     <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-times"></i></button>
+                </div>
+                <div class="mermaid w-full overflow-x-auto" id="${id}">${code}</div>
+            `;
             chatBox.appendChild(div);
 
             if (window.mermaid) {
                 window.mermaid.run({ nodes: [document.getElementById(id)] });
             }
-            chatBox.scrollTop = chatBox.scrollHeight;
+            scrollToBottom();
         }
 
         function renderQuizCard(quizData) {
             const chatBox = document.getElementById("chat-box");
             const div = document.createElement("div");
-            div.className = "w-full max-w-2xl mt-4 bg-white p-6 rounded-xl shadow-lg border-l-4 border-purple-500 fade-in";
+            div.className = "w-full max-w-2xl mt-6 bg-gray-900 text-white p-6 rounded-2xl shadow-xl border border-gray-700 fade-in";
 
-            // Format JSON to HTML
-            let html = `<h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fa-solid fa-graduation-cap text-purple-500"></i> ${quizData.topic} Quiz</h3>`;
+            let html = `
+                <div class="flex items-center justify-between mb-6 border-b border-gray-700 pb-4">
+                    <h3 class="text-xl font-bold text-blue-400"><i class="fa-solid fa-clipboard-question"></i> ${quizData.topic || "Knowledge Check"}</h3>
+                    <span class="text-xs text-gray-400">Interactive Quiz</span>
+                </div>
+            `;
 
             quizData.questions.forEach((q, idx) => {
+                const qId = `q-${Date.now()}-${idx}`;
                 html += `
-                    <div class="mb-6 last:mb-0">
-                        <p class="font-semibold text-gray-700 mb-2">${idx + 1}. ${q.question}</p>
-                        <div class="grid grid-cols-1 gap-2 pl-4">
-                            ${q.options.map(opt => `
-                                <div class="bg-gray-50 p-2 rounded border border-gray-200 text-sm text-gray-600">
-                                    ${opt}
-                                </div>
+                    <div class="mb-8 last:mb-0">
+                        <p class="font-semibold text-gray-100 mb-4 text-lg">${idx + 1}. ${q.question}</p>
+                        <div class="grid grid-cols-1 gap-3 pl-2">
+                            ${q.options.map((opt, optIdx) => `
+                                <label class="flex items-center gap-3 bg-gray-800 p-3 rounded-lg border border-gray-700 cursor-pointer hover:bg-gray-700 transition group">
+                                    <input type="radio" name="${qId}" value="${opt}" class="form-radio text-blue-500 h-4 w-4">
+                                    <span class="text-sm text-gray-300 group-hover:text-white">${opt}</span>
+                                </label>
                             `).join('')}
                         </div>
-                        <details class="mt-2 text-xs text-purple-600 cursor-pointer">
-                            <summary class="font-bold hover:underline">Show Answer</summary>
-                            <p class="mt-1 p-2 bg-purple-50 rounded text-gray-700">
-                                ✅ <strong>${q.correct_answer}</strong>: ${q.explanation}
-                            </p>
+                        <details class="mt-4 text-sm">
+                            <summary class="text-blue-400 cursor-pointer hover:text-blue-300 font-medium">Reveal Answer</summary>
+                            <div class="mt-2 p-3 bg-green-900/30 border border-green-800 rounded text-green-300">
+                                ✅ <strong>${q.correct_answer}</strong><br>
+                                <span class="text-xs text-gray-400 block mt-1">${q.explanation}</span>
+                            </div>
                         </details>
                     </div>
                 `;
@@ -350,10 +421,49 @@
 
             div.innerHTML = html;
             chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
+            scrollToBottom();
         }
 
-        // --- UTILS ---
+        function renderActionButtons(topic) {
+            const chatBox = document.getElementById("chat-box");
+            // Remove old buttons to prevent duplicates
+            document.querySelectorAll('.action-buttons-container').forEach(e => e.remove());
+
+            const div = document.createElement("div");
+            div.className = "action-buttons-container flex flex-wrap gap-3 mt-4 ml-2 fade-in";
+            div.innerHTML = `
+                <button onclick="handleVisualizeClick(this, '${topic}')" class="flex items-center gap-2 bg-white text-blue-600 px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-blue-50 border border-blue-200 shadow-sm transition transform hover:-translate-y-1">
+                    <i class="fa-solid fa-diagram-project"></i> Visualize Plan
+                </button>
+                <button onclick="handleQuizClick(this, '${topic}')" class="flex items-center gap-2 bg-white text-purple-600 px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-purple-50 border border-purple-200 shadow-sm transition transform hover:-translate-y-1">
+                    <i class="fa-solid fa-graduation-cap"></i> Take a Quiz
+                </button>
+            `;
+            chatBox.appendChild(div);
+            scrollToBottom();
+        }
+
+        // --- UTILITIES ---
+
+        function showTyping(show) {
+            const box = document.getElementById("chat-box");
+            const existing = document.getElementById("typing");
+            if (show && !existing) {
+                const div = document.createElement("div");
+                div.id = "typing";
+                div.className = "flex gap-2 p-4 bg-white w-fit rounded-2xl rounded-bl-none shadow-sm border border-gray-100";
+                div.innerHTML = `<div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div><div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce delay-100"></div><div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce delay-200"></div>`;
+                box.appendChild(div);
+                scrollToBottom();
+            } else if (!show && existing) existing.remove();
+        }
+
+        function scrollToBottom() {
+            const chatBox = document.getElementById("chat-box");
+            setTimeout(() => {
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 50);
+        }
 
         function extractMermaidCode(text) {
             const match = text.match(/```mermaid([\s\S]*?)```/);
@@ -362,45 +472,38 @@
             return null;
         }
 
-        function renderPlanCard(plan) {
-            // Optional: If you want to render the structured plan nicely
-            // You can implement this to loop through plan.schedule and create HTML cards
-        }
-
-        function showTyping(show) {
-            const box = document.getElementById("chat-box");
-            const existing = document.getElementById("typing");
-            if (show && !existing) {
-                const div = document.createElement("div");
-                div.id = "typing";
-                div.className = "flex gap-2 p-4";
-                div.innerHTML = `<div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>`;
-                box.appendChild(div);
-                box.scrollTop = box.scrollHeight;
-            } else if (!show && existing) existing.remove();
-        }
-
-        // --- NAV UTILS ---
         function loadThread(id) {
             currentThreadId = id;
             switchView('chat');
             document.getElementById('chat-box').innerHTML = '';
             addMessage("bot", "Continued previous session...");
         }
+
         function saveThreads() { localStorage.setItem('pathfinder_threads', JSON.stringify(threads)); }
+
         function backToHome() { switchView('home'); renderThreadList(); }
+
         function handleEnter(e) { if(e.key === "Enter") sendMessage(); }
+
         function renderThreadList() {
             const list = document.getElementById("thread-list");
             list.innerHTML = threads.map(t =>
-                `<div onclick="loadThread('${t.id}')" class="p-3 hover:bg-gray-100 rounded cursor-pointer truncate text-sm text-gray-700">${t.title}</div>`
+                `<div onclick="loadThread('${t.id}')" class="p-3 hover:bg-white hover:shadow-sm rounded-lg cursor-pointer truncate text-sm text-gray-600 transition flex items-center gap-2">
+                    <i class="fa-regular fa-message text-xs"></i> ${t.title}
+                </div>`
             ).join('');
         }
+
         function updateThreadTitle(id, msg) {
             const t = threads.find(x=>x.id===id);
             if(t && t.title==="New Session") { t.title = msg.substring(0,25)+"..."; saveThreads(); renderThreadList(); }
         }
-        function clearAllData() { localStorage.clear(); location.reload(); }
+
+        function clearAllData() {
+            if(confirm("Are you sure? This will delete all your learning history.")) {
+                localStorage.clear(); location.reload();
+            }
+        }
     </script>
 </body>
 </html>
