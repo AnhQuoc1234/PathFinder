@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 from typing import TypedDict, Any, List
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
@@ -8,10 +7,7 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import CSVLoader
 from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain_core.callbacks.base import BaseCallbackHandler
-
 from opik.integrations.langchain import OpikTracer
-
 
 from agent.schemas import AgentState
 
@@ -22,22 +18,17 @@ TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
 # Retriever
 def build_retriever():
-    """Loads CSV and creates a local vector search engine."""
     file_path = "knowledge.csv"
     if not os.path.exists(file_path):
-        print("⚠️ Warning: knowledge.csv not found. Proceeding without local knowledge.")
         return None
-
     try:
         loader = CSVLoader(file_path=file_path)
         docs = loader.load()
         if not docs: return None
-
         embeddings = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
         vectorstore = FAISS.from_documents(docs, embeddings)
         return vectorstore.as_retriever(search_kwargs={"k": 2})
-    except Exception as e:
-        print(f"Error loading CSV: {e}")
+    except Exception:
         return None
 
 
@@ -45,13 +36,11 @@ retriever = build_retriever()
 tavily_tool = TavilySearchResults(k=3)
 
 
-#Define Nodes
+# Define Nodes
 
 def retrieve_node(state: AgentState):
-    """Step 1: Check CSV Knowledge Base"""
     query = state.get("user_message", "")
     context = ""
-
     if retriever:
         try:
             results = retriever.invoke(query)
@@ -59,68 +48,50 @@ def retrieve_node(state: AgentState):
                 context = "\n\n".join([doc.page_content for doc in results])
         except Exception:
             pass
-
     return {"context": context}
 
 
 def web_search_node(state: AgentState):
-    """Step 2: Check Web (Tavily)"""
     query = state.get("user_message", "")
     existing_context = state.get("context", "")
-
     try:
+        # Search web to supplement internal knowledge
         web_results = tavily_tool.invoke(query)
         web_content = "\n".join([r.get("content", "") for r in web_results])
-
-        final_context = f"INTERNAL KNOWLEDGE (CSV):\n{existing_context}\n\nWEB SEARCH:\n{web_content}"
+        final_context = f"{existing_context}\n\nWeb Search Info:\n{web_content}"
         return {"context": final_context}
     except Exception:
         return {"context": existing_context}
 
 
 def generate_node(state: AgentState):
-    """Step 3: Generate Answer (Strict: Text First -> Then Mermaid)"""
+    """Step 3: Generate Answer (Natural Style)"""
     query = state.get("user_message", "")
     context = state.get("context", "")
 
-    # --- UPDATED PROMPT FOR STRICT ORDERING ---
+    # --- UPDATED PROMPT: NATURAL & FRIENDLY ---
+    # No more "Part 1 / Part 2" headers.
     prompt = f"""
-    You are PathFinder AI, an expert educational consultant.
+    You are PathFinder AI, a friendly and expert educational consultant.
 
-    USER REQUEST: "{query}"
+    USER QUESTION: "{query}"
+
+    CONTEXT:
+    {context}
 
     INSTRUCTIONS:
-    You must structure your response in exactly two distinct parts.
-
-    PART 1: THE DETAILED PLAN (Text)
-    - Start here. Do NOT show any code diagrams in this part.
-    - Provide a comprehensive, step-by-step learning roadmap.
-    - Use clear Markdown (Bold headers, bullet points).
-    - Explain *why* each step is important.
-
-    PART 2: THE VISUALIZATION (Mermaid Code)
-    - After the text plan is finished, provide a SINGLE block of Mermaid code to visualize this path.
-    - Use `graph TD` (Top-Down) or `mindmap`.
-    - Ensure the syntax is correct.
-    - Wrap it strictly in a markdown code block like this:
-      ```mermaid
-      graph TD
-        A[Start] --> B(Step 1)
-        B --> C(Step 2)
-      ```
-
-    ---
-    CONTEXT KNOWLEDGE:
-    {context}
-    ---
+    1. Answer the user's request naturally and comprehensively. Use a helpful, encouraging tone.
+    2. Structure your text using clean Markdown (headers, bullet points) so it is easy to read.
+    3. AT THE VERY END of your response, strictly append a Mermaid diagram code block to visualize the plan.
+       - Use `graph TD` or `mindmap`.
+       - Do NOT announce it (e.g., avoid saying "Here is the diagram part"). Just put the code block at the bottom.
     """
 
-    # Initialize Opik Tracer
-    opik_tracer = OpikTracer(tags=["PathFinder_Generate"])
+    # We keep Opik to track errors, but it won't affect the style
+    opik_tracer = OpikTracer(tags=["PathFinder_Chat"])
 
     llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
 
-    # Invoke LLM with the Opik callback
     response = llm.invoke(prompt, config={"callbacks": [opik_tracer]})
 
     return {
@@ -129,7 +100,7 @@ def generate_node(state: AgentState):
     }
 
 
-#Build Graph
+# Build Graph
 workflow = StateGraph(AgentState)
 
 workflow.add_node("retrieve", retrieve_node)
