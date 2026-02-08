@@ -8,7 +8,7 @@ DB_NAME = "pathfinder.db"
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    # User Table
+    # Users: username, password
     c.execute('''CREATE TABLE IF NOT EXISTS users
                  (
                      username
@@ -18,7 +18,7 @@ def init_db():
                      password
                      TEXT
                  )''')
-    # Chat History Table
+    # Chats: username, thread_id, role, message, timestamp
     c.execute('''CREATE TABLE IF NOT EXISTS chats
                  (
                      id
@@ -30,26 +30,10 @@ def init_db():
                      TEXT,
                      thread_id
                      TEXT,
-                     message
-                     TEXT,
                      role
                      TEXT,
-                     timestamp
-                     DATETIME
-                 )''')
-    # Progress/Plan Table
-    c.execute('''CREATE TABLE IF NOT EXISTS plans
-                 (
-                     username
+                     message
                      TEXT,
-                     topic
-                     TEXT,
-                     plan_json
-                     TEXT,
-                     progress
-                     INTEGER
-                     DEFAULT
-                     0,
                      timestamp
                      DATETIME
                  )''')
@@ -79,27 +63,28 @@ def login_user(username, password):
     return user is not None
 
 
-def save_chat(username, thread_id, role, message):
-    if not username: return
+def save_chat_message(username, thread_id, role, message):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("INSERT INTO chats (username, thread_id, message, role, timestamp) VALUES (?, ?, ?, ?, ?)",
-              (username, thread_id, message, role, datetime.now()))
+    c.execute("INSERT INTO chats (username, thread_id, role, message, timestamp) VALUES (?, ?, ?, ?, ?)",
+              (username, thread_id, role, message, datetime.now()))
     conn.commit()
     conn.close()
 
 
-def get_user_history(username):
+def get_chat_history(username, thread_id):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("SELECT thread_id, role, message FROM chats WHERE username=? ORDER BY timestamp ASC", (username,))
+    # Fetch previous messages for this specific thread
+    c.execute("SELECT role, message FROM chats WHERE username=? AND thread_id=? ORDER BY timestamp ASC",
+              (username, thread_id))
     rows = c.fetchall()
     conn.close()
 
-    # Group by thread
-    history = {}
+    # Convert to format LangChain expects
+    # (role, content) tuples or dictionaries
+    messages = []
     for r in rows:
-        tid = r[0]
-        if tid not in history: history[tid] = []
-        history[tid].append({"role": r[1], "content": r[2]})
-    return history
+        role = "human" if r[0] == "user" else "ai"
+        messages.append((role, r[1]))
+    return messages
