@@ -6,17 +6,9 @@
     <title>PathFinder - AI Learning Companion</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-    <script type="module">
-        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-        mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
-        window.mermaid = mermaid;
-    </script>
 
     <style>
         body { font-family: 'Poppins', sans-serif; }
@@ -29,13 +21,16 @@
         ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
 
-        /* Markdown Styles */
+        /* Markdown Styling inside bubbles */
         .markdown-body h3 { font-size: 1.1rem; font-weight: 600; color: #2563eb; margin-top: 0.5rem; }
         .markdown-body ul { list-style-type: disc; padding-left: 1.2rem; }
         .markdown-body p { margin-bottom: 0.5rem; }
 
-        /* Mermaid Container */
-        .mermaid { display: flex; justify-content: center; background: white; padding: 20px; border-radius: 10px; }
+        /* Checkbox Strikethrough Logic */
+        input[type="checkbox"]:checked + span {
+            text-decoration: line-through;
+            color: #9ca3af; /* Gray text */
+        }
     </style>
 </head>
 <body class="bg-white text-gray-800 h-screen flex flex-col overflow-hidden">
@@ -53,7 +48,7 @@
                     <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">In Weeks.</span>
                 </h1>
                 <p class="text-gray-500 text-lg border-l-4 border-yellow-400 pl-6 leading-relaxed">
-                    Generate structured learning roadmaps, visualize your path with mind maps, and test your knowledge with interactive AI quizzes.
+                    Generate structured learning roadmaps and test your knowledge with interactive AI quizzes.
                 </p>
                 <button onclick="startNewChat()"
                     class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold py-4 px-10 rounded-full shadow-xl transition transform hover:scale-105 flex items-center gap-3">
@@ -129,15 +124,10 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        const API_URL = "https://pathfinder-swgh.onrender.com";
-
-        // --- STATE MANAGEMENT ---
+        const API_URL = "http://127.0.0.1:8000";
         let currentThreadId = null;
         let threads = [];
-        let currentTopic = "";
 
-        // Load History
         try {
             const stored = localStorage.getItem('pathfinder_threads');
             if (stored) threads = JSON.parse(stored);
@@ -145,10 +135,8 @@
 
         document.addEventListener("DOMContentLoaded", renderThreadList);
 
-        // --- NAVIGATION ---
         function startNewChat() {
             currentThreadId = "thread_" + Date.now();
-            currentTopic = "";
             const newThread = { id: currentThreadId, title: "New Session", date: new Date().toLocaleDateString() };
             threads.unshift(newThread);
             saveThreads();
@@ -168,25 +156,18 @@
             }
         }
 
-        // --- CORE CHAT LOGIC ---
-        async function sendMessage(manualMessage = null, isHidden = false) {
+        async function sendMessage(manualMessage = null) {
             const inputField = document.getElementById("user-input");
             const message = manualMessage || inputField.value.trim();
             if (!message) return;
 
-            // 1. User Message UI
-            if (!isHidden) {
-                addMessage("user", message);
-                inputField.value = "";
-                updateThreadTitle(currentThreadId, message);
-                currentTopic = message;
-            }
+            addMessage("user", message);
+            inputField.value = "";
+            updateThreadTitle(currentThreadId, message);
 
-            // 2. Loading State
             showTyping(true);
 
             try {
-                // 3. Backend Call
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -201,186 +182,78 @@
                     return;
                 }
 
-                // 4. Handle Response Types
-
-                // A. Text Reply
-                if (data.reply) {
-                    addMessage("bot", data.reply);
-                }
-
-                // B. Structured Plan (JSON)
+                if (data.reply) addMessage("bot", data.reply);
                 if (data.plan) {
                     renderPlanCard(data.plan);
-                    renderActionButtons(data.plan.topic || currentTopic);
-                }
-                // C. Fallback: Long text reply usually means a plan was generated in text
-                else if (data.reply.length > 150) {
-                     renderActionButtons(currentTopic);
-                }
-
-                // D. Mermaid Diagram (Directly from backend)
-                if (data.mermaid) {
-                    renderMermaid(data.mermaid);
-                }
-
-                // E. Quiz (Directly from backend)
-                if (data.quiz) {
-                    renderQuizCard(data.quiz);
+                    renderActionButtons(data.plan.topic);
+                } else if (data.reply.length > 150) {
+                     // If long text but no structured plan, still show quiz button
+                     renderActionButtons(message);
                 }
 
             } catch (error) {
                 showTyping(false);
-                addMessage("bot", "⚠️ Connection Error. Ensure backend is running at " + API_URL);
+                addMessage("bot", "⚠️ Connection Error.");
                 console.error(error);
             }
         }
 
-        // --- FEATURE HANDLERS ---
-
-        async function handleVisualizeClick(btn, topic) {
-            btn.parentElement.remove(); // Remove buttons
-            addMessage("bot", "Designing your visual roadmap...");
-            showTyping(true);
-
-            // We send a hidden message to the chat endpoint.
-            // The Agent Graph should have a node to handle "diagram" or "visualize" requests.
-            // Alternatively, create a dedicated /visualize endpoint in main.py.
-            try {
-                const response = await fetch(`${API_URL}/chat`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        message: "Generate a mermaid diagram for " + topic,
-                        thread_id: currentThreadId
-                    })
-                });
-                const data = await response.json();
-                showTyping(false);
-
-                // Use the structured field if available, else regex extract
-                const code = data.mermaid || extractMermaidCode(data.reply);
-
-                if (code) {
-                    renderMermaid(code);
-                } else {
-                    addMessage("bot", "Could not generate visual.");
-                }
-            } catch (e) { showTyping(false); }
-        }
-
-        async function handleQuizClick(btn, topic) {
-            btn.parentElement.remove();
-            addMessage("bot", "Preparing your knowledge check...");
-            showTyping(true);
-
-            try {
-                // Direct call to Quiz Endpoint
-                const response = await fetch(`${API_URL}/quiz`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ topic: topic, context: "Based on previous plan" })
-                });
-                const data = await response.json();
-                showTyping(false);
-
-                if (data.questions && data.questions.length > 0) {
-                    renderQuizCard(data);
-                } else {
-                    addMessage("bot", "Unable to generate quiz at this moment.");
-                }
-            } catch (e) {
-                showTyping(false);
-                addMessage("bot", "Error generating quiz.");
-            }
-        }
-
-        // --- UI RENDERING COMPONENTS ---
-
-        function addMessage(role, text) {
-            const chatBox = document.getElementById("chat-box");
-            const div = document.createElement("div");
-            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} fade-in`;
-
-            // Remove raw mermaid blocks from text to avoid ugliness
-            const cleanText = text.replace(/```mermaid[\s\S]*?```/g, "");
-
-            div.innerHTML = `
-                <div class="max-w-[85%] md:max-w-[75%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
-                    role === 'user'
-                    ? 'bg-blue-600 text-white rounded-br-none'
-                    : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
-                }">
-                    <div class="markdown-body" style="${role==='user'?'color:white':''}">
-                        ${marked.parse(cleanText)}
-                    </div>
-                </div>`;
-            chatBox.appendChild(div);
-            scrollToBottom();
-        }
-
+        // --- TRACKING FEATURE IMPLEMENTED AS CHECKBOXES ---
         function renderPlanCard(plan) {
             const chatBox = document.getElementById("chat-box");
             const div = document.createElement("div");
             div.className = "w-full max-w-3xl mt-4 fade-in self-start";
 
-            // Assuming plan structure: { topic: "...", weeks: [ { title: "...", days: [...] } ] }
-            // If the LLM returns a different JSON structure, adjust this parsing.
-
             let html = `
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
                     <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
-                        <h3 class="font-bold text-lg"><i class="fa-solid fa-map"></i> Learning Path: ${plan.topic || "Custom Plan"}</h3>
-                        <span class="text-xs bg-blue-500 px-2 py-1 rounded">Generated by AI</span>
+                        <h3 class="font-bold text-lg"><i class="fa-solid fa-map"></i> Learning Path: ${plan.topic}</h3>
                     </div>
                     <div class="p-6 space-y-6">
             `;
 
-            // Render Weeks
             if (plan.weeks && Array.isArray(plan.weeks)) {
-                plan.weeks.forEach((week, index) => {
+                plan.weeks.forEach((week, weekIndex) => {
                     html += `
                         <div class="border-l-4 border-blue-200 pl-4">
-                            <h4 class="font-bold text-gray-800 mb-2">Week ${index + 1}: ${week.title || "Focus Area"}</h4>
-                            <ul class="text-sm text-gray-600 space-y-1">
-                                ${week.days ? week.days.map(d => `
-                                    <li class="flex gap-2 items-start">
-                                        <i class="fa-solid fa-check-circle text-blue-400 mt-1"></i>
-                                        <span><strong class="text-gray-700">${d.day || ""}:</strong> ${d.task || d}</span>
-                                    </li>
-                                `).join('') : '<li>Check detailed guide.</li>'}
-                            </ul>
+                            <h4 class="font-bold text-gray-800 mb-2">Week ${weekIndex + 1}: ${week.title}</h4>
+                            <div class="space-y-2">
+                                ${week.days.map((d, dayIndex) => `
+                                    <label class="flex items-start gap-3 cursor-pointer group">
+                                        <input type="checkbox" class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                                        <span class="text-sm text-gray-600 group-hover:text-gray-800 transition"><strong class="text-gray-700">${d.day}:</strong> ${d.task}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
                         </div>
                     `;
                 });
-            } else {
-                html += `<div class="text-gray-500 italic">Structured plan data not found. Refer to the chat message above.</div>`;
             }
-
             html += `</div></div>`;
             div.innerHTML = html;
             chatBox.appendChild(div);
             scrollToBottom();
         }
 
-        function renderMermaid(code) {
-            const chatBox = document.getElementById("chat-box");
-            const id = "mermaid-" + Date.now();
-            const div = document.createElement("div");
-            div.className = "w-full max-w-4xl mt-4 bg-white p-2 md:p-6 rounded-2xl shadow-lg border border-gray-100 fade-in flex flex-col items-center overflow-hidden";
+        async function handleQuizClick(btn, topic) {
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Generating...`;
+            try {
+                const response = await fetch(`${API_URL}/quiz`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ topic: topic })
+                });
+                const data = await response.json();
+                btn.remove(); // Remove button after clicking
 
-            div.innerHTML = `
-                <div class="w-full flex justify-between items-center mb-4 border-b pb-2">
-                     <span class="font-bold text-gray-700 text-sm"><i class="fa-solid fa-diagram-project"></i> Knowledge Graph</span>
-                     <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-times"></i></button>
-                </div>
-                <div class="mermaid w-full overflow-x-auto" id="${id}">${code}</div>
-            `;
-            chatBox.appendChild(div);
-
-            if (window.mermaid) {
-                window.mermaid.run({ nodes: [document.getElementById(id)] });
+                if (data.questions && data.questions.length > 0) {
+                    renderQuizCard(data);
+                } else {
+                    addMessage("bot", "Could not generate quiz.");
+                }
+            } catch (e) {
+                addMessage("bot", "Error generating quiz.");
             }
-            scrollToBottom();
         }
 
         function renderQuizCard(quizData) {
@@ -390,7 +263,7 @@
 
             let html = `
                 <div class="flex items-center justify-between mb-6 border-b border-gray-700 pb-4">
-                    <h3 class="text-xl font-bold text-blue-400"><i class="fa-solid fa-clipboard-question"></i> ${quizData.topic || "Knowledge Check"}</h3>
+                    <h3 class="text-xl font-bold text-blue-400"><i class="fa-solid fa-clipboard-question"></i> ${quizData.topic}</h3>
                     <span class="text-xs text-gray-400">Interactive Quiz</span>
                 </div>
             `;
@@ -401,7 +274,7 @@
                     <div class="mb-8 last:mb-0">
                         <p class="font-semibold text-gray-100 mb-4 text-lg">${idx + 1}. ${q.question}</p>
                         <div class="grid grid-cols-1 gap-3 pl-2">
-                            ${q.options.map((opt, optIdx) => `
+                            ${q.options.map((opt) => `
                                 <label class="flex items-center gap-3 bg-gray-800 p-3 rounded-lg border border-gray-700 cursor-pointer hover:bg-gray-700 transition group">
                                     <input type="radio" name="${qId}" value="${opt}" class="form-radio text-blue-500 h-4 w-4">
                                     <span class="text-sm text-gray-300 group-hover:text-white">${opt}</span>
@@ -426,15 +299,13 @@
 
         function renderActionButtons(topic) {
             const chatBox = document.getElementById("chat-box");
-            // Remove old buttons to prevent duplicates
+            // Remove old buttons if any exist
             document.querySelectorAll('.action-buttons-container').forEach(e => e.remove());
 
             const div = document.createElement("div");
             div.className = "action-buttons-container flex flex-wrap gap-3 mt-4 ml-2 fade-in";
+            // Removed Visualize Button, Kept Quiz Button
             div.innerHTML = `
-                <button onclick="handleVisualizeClick(this, '${topic}')" class="flex items-center gap-2 bg-white text-blue-600 px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-blue-50 border border-blue-200 shadow-sm transition transform hover:-translate-y-1">
-                    <i class="fa-solid fa-diagram-project"></i> Visualize Plan
-                </button>
                 <button onclick="handleQuizClick(this, '${topic}')" class="flex items-center gap-2 bg-white text-purple-600 px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-purple-50 border border-purple-200 shadow-sm transition transform hover:-translate-y-1">
                     <i class="fa-solid fa-graduation-cap"></i> Take a Quiz
                 </button>
@@ -443,7 +314,24 @@
             scrollToBottom();
         }
 
-        // --- UTILITIES ---
+        function addMessage(role, text) {
+            const chatBox = document.getElementById("chat-box");
+            const div = document.createElement("div");
+            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} fade-in`;
+
+            div.innerHTML = `
+                <div class="max-w-[85%] md:max-w-[75%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
+                    role === 'user'
+                    ? 'bg-blue-600 text-white rounded-br-none'
+                    : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                }">
+                    <div class="markdown-body" style="${role==='user'?'color:white':''}">
+                        ${marked.parse(text)}
+                    </div>
+                </div>`;
+            chatBox.appendChild(div);
+            scrollToBottom();
+        }
 
         function showTyping(show) {
             const box = document.getElementById("chat-box");
@@ -460,31 +348,12 @@
 
         function scrollToBottom() {
             const chatBox = document.getElementById("chat-box");
-            setTimeout(() => {
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }, 50);
-        }
-
-        function extractMermaidCode(text) {
-            const match = text.match(/```mermaid([\s\S]*?)```/);
-            if (match) return match[1].trim();
-            if (text.includes("graph TD") || text.includes("mindmap")) return text;
-            return null;
-        }
-
-        function loadThread(id) {
-            currentThreadId = id;
-            switchView('chat');
-            document.getElementById('chat-box').innerHTML = '';
-            addMessage("bot", "Continued previous session...");
+            setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 50);
         }
 
         function saveThreads() { localStorage.setItem('pathfinder_threads', JSON.stringify(threads)); }
-
         function backToHome() { switchView('home'); renderThreadList(); }
-
         function handleEnter(e) { if(e.key === "Enter") sendMessage(); }
-
         function renderThreadList() {
             const list = document.getElementById("thread-list");
             list.innerHTML = threads.map(t =>
@@ -493,16 +362,21 @@
                 </div>`
             ).join('');
         }
-
         function updateThreadTitle(id, msg) {
             const t = threads.find(x=>x.id===id);
             if(t && t.title==="New Session") { t.title = msg.substring(0,25)+"..."; saveThreads(); renderThreadList(); }
         }
-
         function clearAllData() {
             if(confirm("Are you sure? This will delete all your learning history.")) {
                 localStorage.clear(); location.reload();
             }
+        }
+        // Placeholder for loadThread
+        function loadThread(id) {
+            currentThreadId = id;
+            switchView('chat');
+            document.getElementById('chat-box').innerHTML = '';
+            addMessage("bot", "Welcome back! Start typing to resume...");
         }
     </script>
 </body>
