@@ -12,9 +12,10 @@ from langchain_core.callbacks.base import BaseCallbackHandler
 
 from opik.integrations.langchain import OpikTracer
 
+
 from agent.schemas import AgentState
 
-#Config
+# Config
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
@@ -24,7 +25,7 @@ def build_retriever():
     """Loads CSV and creates a local vector search engine."""
     file_path = "knowledge.csv"
     if not os.path.exists(file_path):
-        print("Warning: knowledge.csv not found.")
+        print("⚠️ Warning: knowledge.csv not found. Proceeding without local knowledge.")
         return None
 
     try:
@@ -44,11 +45,11 @@ retriever = build_retriever()
 tavily_tool = TavilySearchResults(k=3)
 
 
-# Define Nodes
+#Define Nodes
 
 def retrieve_node(state: AgentState):
     """Step 1: Check CSV Knowledge Base"""
-    query = state.get("user_message", "")  # Dùng .get để an toàn hơn
+    query = state.get("user_message", "")
     context = ""
 
     if retriever:
@@ -78,25 +79,48 @@ def web_search_node(state: AgentState):
 
 
 def generate_node(state: AgentState):
-    """Step 3: Generate Answer (Traced by Opik)"""
+    """Step 3: Generate Answer (Strict: Text First -> Then Mermaid)"""
     query = state.get("user_message", "")
     context = state.get("context", "")
 
+    # --- UPDATED PROMPT FOR STRICT ORDERING ---
     prompt = f"""
-    You are PathFinder AI. Answer the user based on the context provided.
+    You are PathFinder AI, an expert educational consultant.
 
-    CONTEXT:
+    USER REQUEST: "{query}"
+
+    INSTRUCTIONS:
+    You must structure your response in exactly two distinct parts.
+
+    PART 1: THE DETAILED PLAN (Text)
+    - Start here. Do NOT show any code diagrams in this part.
+    - Provide a comprehensive, step-by-step learning roadmap.
+    - Use clear Markdown (Bold headers, bullet points).
+    - Explain *why* each step is important.
+
+    PART 2: THE VISUALIZATION (Mermaid Code)
+    - After the text plan is finished, provide a SINGLE block of Mermaid code to visualize this path.
+    - Use `graph TD` (Top-Down) or `mindmap`.
+    - Ensure the syntax is correct.
+    - Wrap it strictly in a markdown code block like this:
+      ```mermaid
+      graph TD
+        A[Start] --> B(Step 1)
+        B --> C(Step 2)
+      ```
+
+    ---
+    CONTEXT KNOWLEDGE:
     {context}
-
-    USER QUESTION: {query}
+    ---
     """
 
     # Initialize Opik Tracer
-    opik_tracer = OpikTracer(tags=["PathFinder_Agent"])
+    opik_tracer = OpikTracer(tags=["PathFinder_Generate"])
 
     llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
 
-    # Invoke LLM with the Opik callback to log the trace
+    # Invoke LLM with the Opik callback
     response = llm.invoke(prompt, config={"callbacks": [opik_tracer]})
 
     return {
@@ -105,7 +129,7 @@ def generate_node(state: AgentState):
     }
 
 
-# Build Graph
+#Build Graph
 workflow = StateGraph(AgentState)
 
 workflow.add_node("retrieve", retrieve_node)
