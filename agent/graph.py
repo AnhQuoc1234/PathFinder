@@ -55,7 +55,6 @@ def web_search_node(state: AgentState):
     query = state.get("user_message", "")
     existing_context = state.get("context", "")
     try:
-        # Search web to supplement internal knowledge
         web_results = tavily_tool.invoke(query)
         web_content = "\n".join([r.get("content", "") for r in web_results])
         final_context = f"{existing_context}\n\nWeb Search Info:\n{web_content}"
@@ -65,32 +64,51 @@ def web_search_node(state: AgentState):
 
 
 def generate_node(state: AgentState):
-    """Step 3: Generate Answer (Natural Style)"""
+    """Step 3: Generate Answer (Strict Roadmap & Graph Only)"""
     query = state.get("user_message", "")
     context = state.get("context", "")
 
-    # --- UPDATED PROMPT: NATURAL & FRIENDLY ---
-    # No more "Part 1 / Part 2" headers.
+    # Prompt
     prompt = f"""
-    You are PathFinder AI, a friendly and expert educational consultant.
+    You are PathFinder, an expert curriculum designer.
 
-    USER QUESTION: "{query}"
+    USER REQUEST: "{query}"
+    CONTEXT: {context}
 
-    CONTEXT:
-    {context}
+    YOUR TASK:
+    You must generate a response in exactly two parts.
 
-    INSTRUCTIONS:
-    1. Answer the user's request naturally and comprehensively. Use a helpful, encouraging tone.
-    2. Structure your text using clean Markdown (headers, bullet points) so it is easy to read.
-    3. AT THE VERY END of your response, strictly append a Mermaid diagram code block to visualize the plan.
-       - Use `graph TD` or `mindmap`.
-       - Do NOT announce it (e.g., avoid saying "Here is the diagram part"). Just put the code block at the bottom.
+    PART 1: THE TEXT ROADMAP
+    - Create a detailed, step-by-step learning path (e.g., Week 1, Week 2).
+    - Use clear Markdown (Bold headers, bullet points).
+    - Tone: Professional, encouraging, and direct.
+    - NEGATIVE CONSTRAINT: DO NOT generate any quizzes, exams, or multiple-choice questions.
+
+    PART 2: THE VISUALIZATION
+    - Immediately after the text, provide a Mermaid.js code block.
+    - The diagram MUST strictly represent the "Weeks" or "Steps" you wrote in Part 1.
+    - Syntax: Use `graph TD` (Top-Down) or `mindmap`.
+    - NEGATIVE CONSTRAINT: Do NOT explain how to use Mermaid. Do NOT provide generic examples. Just output the code.
+
+    EXAMPLE OUTPUT FORMAT:
+
+    Here is your plan for [Topic]...
+    * **Week 1:** Basics...
+    * **Week 2:** Advanced...
+
+    ```mermaid
+    graph TD
+      Start((Start)) --> W1[Week 1: Basics]
+      W1 --> T1(Variables)
+      W1 --> T2(Loops)
+      Start --> W2[Week 2: Advanced]
+    ```
     """
 
-    # We keep Opik to track errors, but it won't affect the style
     opik_tracer = OpikTracer(tags=["PathFinder_Chat"])
 
-    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
+    # Reduced temperature to 0.5 to make it less "imaginative" and more "accurate"
+    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
 
     response = llm.invoke(prompt, config={"callbacks": [opik_tracer]})
 
@@ -102,7 +120,6 @@ def generate_node(state: AgentState):
 
 # Build Graph
 workflow = StateGraph(AgentState)
-
 workflow.add_node("retrieve", retrieve_node)
 workflow.add_node("web_search", web_search_node)
 workflow.add_node("generate", generate_node)
