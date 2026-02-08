@@ -73,7 +73,8 @@
                 <span class="font-bold text-gray-700">Your Sessions</span>
                 <button onclick="startNewSession()" class="bg-white text-blue-600 border border-blue-100 hover:bg-blue-50 p-2 rounded-lg transition shadow-sm" title="New Session"><i class="fa-solid fa-plus"></i></button>
             </div>
-            <div id="thread-list" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
+            <div id="thread-list" class="flex-1 overflow-y-auto p-3 space-y-2">
+                </div>
             <button onclick="backToHome()" class="p-4 text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2 border-t hover:bg-gray-100 transition"><i class="fa-solid fa-arrow-left"></i> Back to Home</button>
         </div>
 
@@ -260,50 +261,46 @@
             } catch (e) { console.error(e); }
         }
 
-        // --- FIXED SENDMESSAGE FUNCTION ---
         async function sendMessage(manualMessage = null) {
             const inputField = document.getElementById("user-input");
-            const message = manualMessage || inputField.value.trim();
-            if (!message) return;
+            const messageText = manualMessage || inputField.value.trim();
+            if (!messageText) return;
 
-            addMessage("user", message);
+            addMessage("user", messageText);
             inputField.value = "";
             showTyping(true);
 
             if(!currentThreadId) currentThreadId = (currentUser ? "user_" : "guest_") + Date.now();
 
             try {
-                // FAIL-SAFE PAYLOAD: We send the text in multiple keys so the server finds it regardless of naming.
-                const payload = {
-                    message: message,       // Common Standard
-                    user_message: message,  // Your specific error implies this
-                    query: message,         // Another common standard
-                    thread_id: currentThreadId,
-                    username: currentUser
-                };
-
+                // FIXED: Using "message" instead of "user_message"
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        message: messageText,
+                        thread_id: currentThreadId,
+                        username: currentUser
+                    })
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Server returned status: ${response.status}`);
+                    throw new Error(`Server status: ${response.status}`);
                 }
 
                 const data = await response.json();
                 showTyping(false);
 
-                const botText = data.reply || data.response || data.message || "No text response received.";
+                // Check for various response keys
+                const botText = data.reply || data.response || data.message || "No text response.";
 
-                addMessage("bot", botText);
+                if (botText) addMessage("bot", botText);
 
                 if (data.plan) {
                     renderPlanCard(data.plan);
                     renderActionButtons(data.plan.topic);
                 } else {
-                    renderActionButtons(message);
+                    renderActionButtons(messageText);
                 }
 
                 if(currentUser) loadSidebarThreads();
@@ -311,7 +308,7 @@
             } catch (error) {
                 showTyping(false);
                 console.error(error);
-                addMessage("bot", `⚠️ Error: ${error.message || "Unknown error"}. Check console.`);
+                addMessage("bot", "⚠️ Connection Error. Please check console for details.");
             }
         }
 
