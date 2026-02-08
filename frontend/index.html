@@ -3,47 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StudyBot - AI Learning Companion</title>
+    <title>PathFinder - AI Learning Companion</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-        mermaid.initialize({ startOnLoad: false, theme: 'default' });
+        mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
         window.mermaid = mermaid;
     </script>
 
     <style>
         body { font-family: 'Poppins', sans-serif; }
-
-        /* Animations */
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
-
-        /* Markdown Styles within Chat */
+        /* Markdown Styles */
         .markdown-body h2 { font-size: 1.25rem; font-weight: 700; color: #1d4ed8; margin-top: 1rem; margin-bottom: 0.5rem; }
         .markdown-body h3 { font-size: 1.1rem; font-weight: 600; color: #2563eb; margin-top: 0.8rem; }
         .markdown-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.8rem; }
         .markdown-body ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.8rem; }
-        .markdown-body li { margin-bottom: 0.25rem; }
         .markdown-body strong { color: #1e40af; }
         .markdown-body p { margin-bottom: 0.8rem; line-height: 1.6; }
+        .markdown-body code { background-color: #f3f4f6; padding: 0.2rem 0.4rem; rounded: 0.25rem; font-family: monospace; color: #e11d48; }
 
-        /* Quiz Specific Markdown Styles */
-        .quiz-content h3 { color: #7e22ce; }
-        .quiz-content strong { color: #6b21a8; }
+        /* Mermaid Container */
+        .mermaid { display: flex; justify-content: center; padding: 10px; }
     </style>
 </head>
 <body class="bg-white text-gray-800 h-screen flex flex-col overflow-hidden">
@@ -57,24 +46,32 @@
         <div class="max-w-4xl grid md:grid-cols-2 gap-12 items-center">
             <div class="text-left space-y-6">
                 <h1 class="text-5xl font-bold leading-tight text-gray-900">
-                    Your Personal AI <br>
-                    <span class="text-blue-600">Learning Companion 🎓</span>
+                    Master any Skill <br>
+                    <span class="text-blue-600">In Weeks, Not Years.</span>
                 </h1>
                 <p class="text-gray-500 text-lg border-l-4 border-yellow-400 pl-4">
-                    Create study plans first, then visualize them or test your knowledge.
+                    AI-generated roadmaps, visual learning paths, and personalized quizzes.
                 </p>
                 <button onclick="startNewChat()"
                     class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold py-4 px-8 rounded-full shadow-lg transition transform hover:scale-105 flex items-center gap-2">
                     START LEARNING <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
-
-            <div class="relative hidden md:block">
+            <div class="hidden md:block">
                 <div class="bg-blue-50 rounded-[3rem] p-10 relative">
-                    <div class="bg-blue-600 text-white p-8 rounded-[2rem] shadow-2xl relative z-10 w-64 h-64 flex flex-col items-center justify-center mx-auto">
-                        <i class="fa-solid fa-brain text-6xl mb-4"></i>
-                        <div class="bg-white text-gray-800 px-4 py-2 rounded-xl text-sm font-medium shadow-md absolute -bottom-4 -right-8 animate-bounce">
-                            🧠 Interactive Mode!
+                    <i class="fa-solid fa-layer-group text-blue-200 text-9xl absolute top-10 right-10 opacity-50"></i>
+                    <div class="bg-white p-6 rounded-2xl shadow-xl relative z-10">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-3 h-3 bg-red-400 rounded-full"></div>
+                            <div class="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                            <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="h-4 bg-gray-100 rounded w-3/4"></div>
+                            <div class="h-4 bg-gray-100 rounded w-1/2"></div>
+                            <div class="h-32 bg-blue-50 rounded border-2 border-dashed border-blue-200 flex items-center justify-center text-blue-400">
+                                Visual Roadmap Generated
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -83,16 +80,12 @@
     </div>
 
     <div id="chat-interface" class="hidden flex h-screen w-full">
-
-        <div class="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
+        <div class="w-64 bg-gray-50 border-r border-gray-200 flex flex-col hidden md:flex">
             <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-                <span class="font-bold text-gray-700">My Sessions</span>
-                <button onclick="startNewChat()" class="text-blue-600 hover:bg-blue-100 p-2 rounded-full transition" title="New Chat">
-                    <i class="fa-solid fa-plus"></i>
-                </button>
+                <span class="font-bold text-gray-700">Sessions</span>
+                <button onclick="startNewChat()" class="text-blue-600 hover:bg-blue-100 p-2 rounded-full transition"><i class="fa-solid fa-plus"></i></button>
             </div>
-            <div id="thread-list" class="flex-1 overflow-y-auto p-2 space-y-2">
-            </div>
+            <div id="thread-list" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
             <button onclick="backToHome()" class="p-4 text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2 border-t">
                 <i class="fa-solid fa-arrow-left"></i> Back to Home
             </button>
@@ -105,25 +98,21 @@
                         <i class="fa-solid fa-robot"></i>
                     </div>
                     <div>
-                        <h2 class="font-bold text-gray-800">Learning Assistant</h2>
-                        <span class="text-xs text-green-500 flex items-center gap-1">
-                            <span class="w-2 h-2 bg-green-500 rounded-full"></span> Online
-                        </span>
+                        <h2 class="font-bold text-gray-800">PathFinder Agent</h2>
+                        <span class="text-xs text-green-500 flex items-center gap-1">● Online</span>
                     </div>
                 </div>
-                <button onclick="clearAllData()" class="text-xs text-red-400 hover:text-red-600 underline">Reset All Data</button>
+                <button onclick="clearAllData()" class="text-xs text-red-400 hover:text-red-600 underline">Reset History</button>
             </div>
 
-            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
-            </div>
+            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50 pb-24"></div>
 
             <div class="p-4 bg-white border-t border-gray-100">
                 <div class="max-w-4xl mx-auto relative flex items-center gap-2">
                     <input type="text" id="user-input"
                         class="w-full bg-gray-100 text-gray-800 rounded-full pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-inner"
-                        placeholder="Type your goal (e.g., Learn SQL)..."
+                        placeholder="Type your goal (e.g., Learn Python in 4 weeks)..."
                         onkeypress="handleEnter(event)">
-
                     <button onclick="sendMessage()"
                         class="absolute right-2 bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition hover:scale-110">
                         <i class="fa-solid fa-paper-plane text-sm"></i>
@@ -134,336 +123,284 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        const API_URL = "https://pathfinder-swgh.onrender.com";
+        // --- CONFIG ---
+        const API_URL = "https://pathfinder-swgh.onrender.com"; // Your Backend URL
 
-        // --- STATE MANAGEMENT ---
+        // --- STATE ---
         let currentThreadId = null;
         let threads = [];
-        let cachedPlan = null; // Biến quan trọng: Dùng để giấu Map chờ user bấm nút
+        let currentTopic = ""; // Used for the Quiz context
 
-        // Load local storage
+        // Initialize
         try {
             const stored = localStorage.getItem('pathfinder_threads');
             if (stored) threads = JSON.parse(stored);
         } catch (e) { threads = []; }
 
-        document.addEventListener("DOMContentLoaded", () => {
-            renderThreadList();
-        });
+        document.addEventListener("DOMContentLoaded", renderThreadList);
 
-        // --- NAVIGATION FUNCTIONS ---
+        // --- CORE FUNCTIONS ---
 
         function startNewChat() {
             currentThreadId = "thread_" + Date.now();
-            const newThread = {
-                id: currentThreadId,
-                title: "New Session",
-                date: new Date().toLocaleDateString()
-            };
+            currentTopic = "";
+            const newThread = { id: currentThreadId, title: "New Session", date: new Date().toLocaleDateString() };
             threads.unshift(newThread);
             saveThreads();
-
-            document.getElementById('landing-page').classList.add('hidden');
-            document.getElementById('chat-interface').classList.remove('hidden');
-
-            const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML = '';
-            cachedPlan = null;
-            addMessage("bot", "Hi! I'm here to help you learn. What topic do you want to master today?");
-            renderThreadList();
-        }
-
-        function loadThread(id) {
-            currentThreadId = id;
-            cachedPlan = null;
-            document.getElementById('landing-page').classList.add('hidden');
-            document.getElementById('chat-interface').classList.remove('hidden');
-            renderThreadList();
+            switchView('chat');
             document.getElementById('chat-box').innerHTML = '';
-            addMessage("bot", "Session loaded. You can continue chatting.");
+            addMessage("bot", "Hello! I am PathFinder. What skill would you like to master today?");
+            renderThreadList();
         }
 
-        function deleteThread(event, id) {
-            event.stopPropagation();
-            if (!confirm("Delete this plan?")) return;
-            threads = threads.filter(t => t.id !== id);
-            saveThreads();
-            if (currentThreadId === id) {
-                backToHome();
-                currentThreadId = null;
+        function switchView(view) {
+            if (view === 'chat') {
+                document.getElementById('landing-page').classList.add('hidden');
+                document.getElementById('chat-interface').classList.remove('hidden');
             } else {
-                renderThreadList();
+                document.getElementById('chat-interface').classList.add('hidden');
+                document.getElementById('landing-page').classList.remove('hidden');
             }
         }
 
-        function backToHome() {
-            document.getElementById('chat-interface').classList.add('hidden');
-            document.getElementById('landing-page').classList.remove('hidden');
-        }
-
-        function clearAllData() {
-            if(confirm("Delete ALL history?")) {
-                localStorage.removeItem('pathfinder_threads');
-                threads = [];
-                backToHome();
-                renderThreadList();
-            }
-        }
-
-        // --- CORE CHAT LOGIC ---
-
-        async function sendMessage(manualMessage = null, isHiddenCommand = false) {
+        async function sendMessage(manualMessage = null, isHidden = false) {
             const inputField = document.getElementById("user-input");
             const message = manualMessage || inputField.value.trim();
-
             if (!message) return;
 
-            // 1. Chỉ hiện tin nhắn User nếu KHÔNG phải là lệnh ẩn (lệnh từ nút bấm)
-            if (!isHiddenCommand) {
+            if (!isHidden) {
                 addMessage("user", message);
-                if (!manualMessage) inputField.value = "";
-                // Khi user hỏi câu mới, xóa cache cũ đi để tránh vẽ nhầm map cũ
-                cachedPlan = null;
+                inputField.value = "";
+                updateThreadTitle(currentThreadId, message);
+                currentTopic = message; // Update topic context
             }
 
-            // 2. Loading State
             showTyping(true);
-            updateThreadTitle(currentThreadId, message);
 
             try {
-                // 3. Send to Backend
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        message: message,
-                        thread_id: currentThreadId
-                    })
+                    body: JSON.stringify({ message: message, thread_id: currentThreadId })
                 });
 
                 const data = await response.json();
                 showTyping(false);
 
-                if (!data || data.status === "error") {
-                    addMessage("bot", "⚠️ Server Error: " + (data?.reply || "Unknown"));
-                } else {
-                    // --- XỬ LÝ LOGIC HIỂN THỊ ---
+                if (data.status === "error") {
+                    addMessage("bot", "⚠️ " + data.reply);
+                    return;
+                }
 
-                    // A. Nếu có Text Reply -> Hiện ngay
-                    if (data.reply) {
-                        addMessage("bot", data.reply);
-                    }
+                // 1. Render Text Reply
+                if (data.reply) addMessage("bot", data.reply);
 
-                    // B. Nếu Backend gửi kèm Plan (Map) -> KHOAN VẼ, LƯU VÀO KHO
-                    if (data.plan && (data.plan.markdown || data.plan.mermaid)) {
-                        console.log("Plan received but hidden. Waiting for user.");
-                        cachedPlan = data.plan;
-                    }
-
-                    // C. Logic hiển thị Nút:
-                    // Chỉ hiện nút Visualize/Quiz nếu:
-                    // 1. Có cachedPlan (nghĩa là server đã gửi map ngầm)
-                    // 2. HOẶC reply dài (nghĩa là vừa tạo text plan xong)
-                    // 3. VÀ không phải là đang trả lời Quiz
-                    if ((cachedPlan || (data.reply && data.reply.length > 100)) && !data.quiz) {
-                         renderActionButtons();
-                    }
-
-                    // D. Nếu Backend gửi Quiz (thường do bấm nút Quiz) -> Hiện luôn
-                    if (data.quiz) {
-                        renderQuiz(data.quiz);
-                    }
-
-                    // E. TRƯỜNG HỢP ĐẶC BIỆT: Bấm nút Visualize nhưng Server chưa gửi cache trước đó
-                    // thì lúc này Server trả về data.plan -> Vẽ luôn
-                    if (isHiddenCommand && message.includes("mermaid mindmap") && data.plan) {
-                        renderRichPlan(data.plan);
-                    }
+                // 2. Render Plan (if structured JSON)
+                if (data.plan) {
+                    renderPlanCard(data.plan);
+                    // Show actions if we have a plan
+                    renderActionButtons(data.plan.topic || currentTopic);
+                }
+                // 3. Fallback: If no structured plan but long text, show buttons anyway
+                else if (data.reply.length > 200) {
+                     renderActionButtons(currentTopic);
                 }
 
             } catch (error) {
                 showTyping(false);
-                addMessage("bot", "Connection error. Is the server running?");
+                addMessage("bot", "⚠️ Connection Error. Is the backend running?");
                 console.error(error);
             }
         }
 
-        // --- ACTION BUTTONS ---
-        function renderActionButtons() {
-            const chatBox = document.getElementById("chat-box");
+        // --- SPECIAL FEATURES ---
 
-            // Xóa nút cũ nếu có để tránh trùng lặp
-            const oldBtns = chatBox.querySelectorAll(".action-buttons");
-            oldBtns.forEach(b => b.remove());
+        async function handleVisualizeClick(btn, topic) {
+            btn.parentElement.remove(); // Remove buttons
+            addMessage("bot", "Generating visual roadmap...");
+            showTyping(true);
 
-            const div = document.createElement("div");
-            div.className = "action-buttons flex gap-3 mt-2 fade-in ml-2 mb-4";
+            // Ask specifically for mermaid code
+            // Note: We send this to chat, and graph.py handles "diagram" keyword
+            try {
+                const response = await fetch(`${API_URL}/chat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: "Generate a mermaid diagram for " + topic, thread_id: currentThreadId })
+                });
+                const data = await response.json();
+                showTyping(false);
 
-            div.innerHTML = `
-                <button onclick="handleVisualizeClick(this)"
-                    class="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm border border-blue-200">
-                    <i class="fa-solid fa-map"></i> Visualize Roadmap
-                </button>
-
-                <button onclick="handleQuizClick(this)"
-                    class="flex items-center gap-2 bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm border border-purple-200">
-                    <i class="fa-solid fa-clipboard-question"></i> Take a Quiz
-                </button>
-            `;
-
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
+                // Extract code from response
+                const code = extractMermaidCode(data.reply);
+                if (code) {
+                    renderMermaid(code);
+                } else {
+                    addMessage("bot", "Could not generate visual.");
+                }
+            } catch (e) { showTyping(false); }
         }
 
-        // Bấm nút Visualize
-        function handleVisualizeClick(btnElement) {
-            // Xóa cụm nút đi
-            const container = btnElement.parentElement;
-            container.remove();
+        async function handleQuizClick(btn, topic) {
+            btn.parentElement.remove();
+            addMessage("bot", "Creating a practice quiz for you...");
+            showTyping(true);
 
-            if (cachedPlan) {
-                // TRƯỜNG HỢP 1: Server đã gửi Map kèm Text rồi (đang giấu) -> Vẽ ngay lập tức
-                renderRichPlan(cachedPlan);
-                // Giữ cachedPlan lại phòng khi user muốn xem lại hoặc làm gì đó, hoặc set null tùy ý
-            } else {
-                // TRƯỜNG HỢP 2: Server chưa gửi Map -> Gửi lệnh ngầm xin Map
-                // isHiddenCommand = true để không hiện tin nhắn người dùng
-                sendMessage("Visualize the above plan as a detailed mermaid mindmap", true);
+            try {
+                // Hit the specific QUIZ endpoint
+                const response = await fetch(`${API_URL}/quiz`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ topic: topic })
+                });
+                const data = await response.json();
+                showTyping(false);
+
+                if (data.questions && data.questions.length > 0) {
+                    renderQuizCard(data);
+                } else {
+                    addMessage("bot", "Sorry, I couldn't generate a quiz right now.");
+                }
+            } catch (e) {
+                showTyping(false);
+                addMessage("bot", "Error generating quiz.");
             }
         }
 
-        // Bấm nút Quiz
-        function handleQuizClick(btnElement) {
-             // Xóa cụm nút đi
-            const container = btnElement.parentElement;
-            container.remove();
+        // --- RENDERING ---
 
-            // Luôn gửi lệnh xin Quiz mới
-            sendMessage("Create a multiple choice quiz based on the plan above", true);
-        }
-
-        // --- RENDERING HELPERS ---
-
-        function addMessage(sender, text) {
+        function addMessage(role, text) {
             const chatBox = document.getElementById("chat-box");
-            const isUser = sender === "user";
-
             const div = document.createElement("div");
-            div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} fade-in`;
+            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} fade-in`;
+
+            // Clean markdown blocks for display if necessary
+            const cleanText = text.replace(/```mermaid[\s\S]*?```/g, "[Visual Diagram Generated Below]");
 
             div.innerHTML = `
                 <div class="max-w-[85%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
-                    isUser ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                    role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
                 }">
-                    <div class="markdown-body" style="${isUser ? 'color:white' : ''}">
-                        ${marked.parse(text)}
+                    <div class="markdown-body" style="${role==='user'?'color:white':''}">
+                        ${marked.parse(cleanText)}
                     </div>
                 </div>`;
-
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        async function renderRichPlan(plan) {
+        function renderActionButtons(topic) {
             const chatBox = document.getElementById("chat-box");
-            const planCard = document.createElement("div");
-            planCard.className = "flex justify-start fade-in w-full mt-4";
+            const div = document.createElement("div");
+            div.className = "flex gap-3 mt-2 ml-2 fade-in";
+            div.innerHTML = `
+                <button onclick="handleVisualizeClick(this, '${topic}')" class="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-xs font-bold hover:bg-blue-100 border border-blue-200 transition">
+                    <i class="fa-solid fa-diagram-project"></i> Visualize
+                </button>
+                <button onclick="handleQuizClick(this, '${topic}')" class="flex items-center gap-2 bg-purple-50 text-purple-600 px-4 py-2 rounded-full text-xs font-bold hover:bg-purple-100 border border-purple-200 transition">
+                    <i class="fa-solid fa-list-check"></i> Take Quiz
+                </button>
+            `;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
 
-            // Hỗ trợ cả 2 trường markdown hoặc mermaid trực tiếp
-            const mermaidCode = plan.mermaid || plan.markdown;
-
-            planCard.innerHTML = `
-                <div class="bg-white p-2 rounded-xl shadow-lg border border-gray-200 w-full max-w-3xl overflow-hidden">
-                    <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b">
-                        <h3 class="font-bold text-gray-700 text-sm"><i class="fa-solid fa-map"></i> Roadmap Visualization</h3>
-                    </div>
-                    <div class="mermaid flex justify-center p-4 overflow-x-auto">
-                        ${mermaidCode}
-                    </div>
-                </div>`;
-
-            chatBox.appendChild(planCard);
+        function renderMermaid(code) {
+            const chatBox = document.getElementById("chat-box");
+            const id = "mermaid-" + Date.now();
+            const div = document.createElement("div");
+            div.className = "w-full max-w-3xl mt-4 bg-white p-4 rounded-xl shadow border border-gray-100 fade-in";
+            div.innerHTML = `<div class="mermaid" id="${id}">${code}</div>`;
+            chatBox.appendChild(div);
 
             if (window.mermaid) {
-                try { await window.mermaid.run(); }
-                catch(e) { console.log("Mermaid error:", e); }
+                window.mermaid.run({ nodes: [document.getElementById(id)] });
             }
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function renderQuiz(quizContent) {
+        function renderQuizCard(quizData) {
             const chatBox = document.getElementById("chat-box");
-            const quizCard = document.createElement("div");
-            quizCard.className = "flex justify-start fade-in w-full mt-4";
+            const div = document.createElement("div");
+            div.className = "w-full max-w-2xl mt-4 bg-white p-6 rounded-xl shadow-lg border-l-4 border-purple-500 fade-in";
 
-            let content = typeof quizContent === 'object' ? JSON.stringify(quizContent) : quizContent;
+            // Format JSON to HTML
+            let html = `<h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fa-solid fa-graduation-cap text-purple-500"></i> ${quizData.topic} Quiz</h3>`;
 
-            quizCard.innerHTML = `
-                <div class="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-purple-500 w-full max-w-3xl">
-                    <div class="flex items-center justify-between mb-4 border-b pb-2">
-                        <h3 class="text-lg font-bold text-purple-700 flex items-center gap-2">
-                            <i class="fa-solid fa-clipboard-question"></i> Knowledge Check
-                        </h3>
+            quizData.questions.forEach((q, idx) => {
+                html += `
+                    <div class="mb-6 last:mb-0">
+                        <p class="font-semibold text-gray-700 mb-2">${idx + 1}. ${q.question}</p>
+                        <div class="grid grid-cols-1 gap-2 pl-4">
+                            ${q.options.map(opt => `
+                                <div class="bg-gray-50 p-2 rounded border border-gray-200 text-sm text-gray-600">
+                                    ${opt}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <details class="mt-2 text-xs text-purple-600 cursor-pointer">
+                            <summary class="font-bold hover:underline">Show Answer</summary>
+                            <p class="mt-1 p-2 bg-purple-50 rounded text-gray-700">
+                                ✅ <strong>${q.correct_answer}</strong>: ${q.explanation}
+                            </p>
+                        </details>
                     </div>
-                    <div class="markdown-body quiz-content text-gray-700 leading-relaxed">
-                        ${marked.parse(content)}
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-gray-100 text-right text-xs text-gray-400">
-                        Type your answers (e.g., 1A, 2B) to check.
-                    </div>
-                </div>`;
-
-            chatBox.appendChild(quizCard);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function showTyping(isLoading) {
-            const chatBox = document.getElementById("chat-box");
-            const existing = document.getElementById("typing-indicator");
-
-            if (isLoading && !existing) {
-                const div = document.createElement("div");
-                div.id = "typing-indicator";
-                div.className = "flex justify-start fade-in";
-                div.innerHTML = `<div class="bg-gray-200 p-3 rounded-2xl rounded-bl-none flex gap-1 items-center"><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100"></span><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200"></span></div>`;
-                chatBox.appendChild(div);
-                chatBox.scrollTop = chatBox.scrollHeight;
-            } else if (!isLoading && existing) {
-                existing.remove();
-            }
-        }
-
-        function saveThreads() {
-            localStorage.setItem('pathfinder_threads', JSON.stringify(threads));
-            renderThreadList();
-        }
-
-        function updateThreadTitle(id, firstMessage) {
-            const thread = threads.find(t => t.id === id);
-            if (thread && thread.title === "New Session") {
-                thread.title = firstMessage.substring(0, 20) + "...";
-                saveThreads();
-            }
-        }
-
-        function renderThreadList() {
-             const list = document.getElementById("thread-list");
-            list.innerHTML = "";
-            threads.forEach(t => {
-                const isActive = t.id === currentThreadId;
-                list.innerHTML += `
-                    <div onclick="loadThread('${t.id}')"
-                        class="p-3 rounded-lg cursor-pointer transition flex items-center justify-between gap-2 ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'}">
-                        <span class="truncate text-sm font-medium">${t.title}</span>
-                        <i onclick="deleteThread(event, '${t.id}')" class="fa-solid fa-trash text-xs text-gray-300 hover:text-red-500"></i>
-                    </div>`;
+                `;
             });
+
+            div.innerHTML = html;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function handleEnter(e) {
-            if (e.key === "Enter") sendMessage();
+        // --- UTILS ---
+
+        function extractMermaidCode(text) {
+            const match = text.match(/```mermaid([\s\S]*?)```/);
+            if (match) return match[1].trim();
+            if (text.includes("graph TD") || text.includes("mindmap")) return text;
+            return null;
         }
+
+        function renderPlanCard(plan) {
+            // Optional: If you want to render the structured plan nicely
+            // You can implement this to loop through plan.schedule and create HTML cards
+        }
+
+        function showTyping(show) {
+            const box = document.getElementById("chat-box");
+            const existing = document.getElementById("typing");
+            if (show && !existing) {
+                const div = document.createElement("div");
+                div.id = "typing";
+                div.className = "flex gap-2 p-4";
+                div.innerHTML = `<div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>`;
+                box.appendChild(div);
+                box.scrollTop = box.scrollHeight;
+            } else if (!show && existing) existing.remove();
+        }
+
+        // --- NAV UTILS ---
+        function loadThread(id) {
+            currentThreadId = id;
+            switchView('chat');
+            document.getElementById('chat-box').innerHTML = '';
+            addMessage("bot", "Continued previous session...");
+        }
+        function saveThreads() { localStorage.setItem('pathfinder_threads', JSON.stringify(threads)); }
+        function backToHome() { switchView('home'); renderThreadList(); }
+        function handleEnter(e) { if(e.key === "Enter") sendMessage(); }
+        function renderThreadList() {
+            const list = document.getElementById("thread-list");
+            list.innerHTML = threads.map(t =>
+                `<div onclick="loadThread('${t.id}')" class="p-3 hover:bg-gray-100 rounded cursor-pointer truncate text-sm text-gray-700">${t.title}</div>`
+            ).join('');
+        }
+        function updateThreadTitle(id, msg) {
+            const t = threads.find(x=>x.id===id);
+            if(t && t.title==="New Session") { t.title = msg.substring(0,25)+"..."; saveThreads(); renderThreadList(); }
+        }
+        function clearAllData() { localStorage.clear(); location.reload(); }
     </script>
 </body>
 </html>

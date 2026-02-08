@@ -1,42 +1,48 @@
-# agent/quiz.py
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel, Field
-from typing import List
+from langchain_core.output_parsers import PydanticOutputParser
+from agent.schemas import Quiz
 
-# Question structure
-class QuizQuestion(BaseModel):
-    question: str = Field(description="The question text")
-    options: List[str] = Field(description="List of 4 options")
-    correct_index: int = Field(description="Index of the correct answer (0-3)")
-    explanation: str = Field(description="Explanation why the answer is correct")
+# Initialize LLM
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.0)
 
-class QuizResponse(BaseModel):
-    questions: List[QuizQuestion] = Field(description="List of 5 multiple choice questions")
+# Setup Parser to ensure strict JSON output
+parser = PydanticOutputParser(pydantic_object=Quiz)
 
-# Setup AI
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-structured_llm = llm.with_structured_output(QuizResponse)
 
-system_prompt = """You are a strict examiner.
-Generate a hard 5-question multiple-choice quiz about the given topic.
-- Ensure options are tricky but fair.
-- Provide a clear explanation for the correct answer.
-- Return strictly JSON."""
+def generate_quiz(topic: str, context: str = ""):
+    """
+    Generates a structured quiz based on the user's topic and learning plan context.
+    """
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", system_prompt),
-    ("user", "Create a quiz about: {topic}")
-])
+    prompt_text = """
+    You are an expert tutor creating a quiz to test a student's knowledge.
 
-chain = prompt | structured_llm
+    TOPIC: {topic}
+    LEARNING CONTEXT: {context}
 
-#Generate quiz func
-def generate_quiz(topic: str):
+    INSTRUCTIONS:
+    1. Create a quiz with 5-10 multiple choice questions.
+    2. The questions should test understanding of concepts, not just syntax.
+    3. Provide 4 options for each question.
+    4. Provide a clear explanation for the correct answer.
+    5. The output MUST be valid JSON matching the specified format.
+
+    {format_instructions}
+    """
+
+    prompt = ChatPromptTemplate.from_template(prompt_text)
+
+    # Chain: Prompt -> LLM -> JSON Parser
+    chain = prompt | llm | parser
+
     try:
-        print(f"DEBUG: Generating quiz for '{topic}'")
-        result = chain.invoke({"topic": topic})
-        return result.model_dump() # Trả về Dictionary
+        quiz_data = chain.invoke({
+            "topic": topic,
+            "context": context,
+            "format_instructions": parser.get_format_instructions()
+        })
+        return quiz_data
     except Exception as e:
-        print(f"Quiz Error: {e}")
-        return {"questions": []}
+        print(f"Error generating quiz: {e}")
+        return None

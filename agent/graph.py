@@ -1,4 +1,5 @@
 import os
+import json
 from typing import TypedDict, Any, List
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
@@ -10,13 +11,14 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from opik.integrations.langchain import OpikTracer
 
 from agent.schemas import AgentState
+from agent.quiz import generate_quiz
 
-# Config
+# --- CONFIG ---
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
 
-# Retriever
+# --- RETRIEVER SETUP ---
 def build_retriever():
     file_path = "knowledge.csv"
     if not os.path.exists(file_path):
@@ -36,9 +38,10 @@ retriever = build_retriever()
 tavily_tool = TavilySearchResults(k=3)
 
 
-# Define Nodes
+# --- NODES ---
 
 def retrieve_node(state: AgentState):
+    """Step 1: Get data from local CSV (if any)"""
     query = state.get("user_message", "")
     context = ""
     if retriever:
@@ -52,8 +55,14 @@ def retrieve_node(state: AgentState):
 
 
 def web_search_node(state: AgentState):
+    """Step 2: Get data from the Web"""
     query = state.get("user_message", "")
     existing_context = state.get("context", "")
+
+    # Skip search if user is just asking for a quiz based on previous context
+    if "quiz" in query.lower() or "test" in query.lower():
+        return {"context": existing_context}
+
     try:
         web_results = tavily_tool.invoke(query)
         web_content = "\n".join([r.get("content", "") for r in web_results])
@@ -64,50 +73,66 @@ def web_search_node(state: AgentState):
 
 
 def generate_node(state: AgentState):
-    """Step 3: Generate Answer (Strict Roadmap & Graph Only)"""
-    query = state.get("user_message", "")
+    """Step 3: Generate Answer (Smart Router)"""
+    user_message = state.get("user_message", "").lower()
     context = state.get("context", "")
 
-    # Prompt
+    # --- SCENARIO A: GENERATE QUIZ ---
+    if "quiz" in user_message or "test" in user_message or "exam" in user_message:
+        print("--- GENERATING QUIZ ---")
+
+        # 1. Generate the Quiz Object
+        quiz_obj = generate_quiz(topic="Learning Plan", context=context)
+
+        if quiz_obj:
+            # 2. Return as JSON string wrapped in markdown for the Frontend to parse
+            # We use json.dumps to ensure it is valid JSON text
+            json_output = json.dumps(quiz_obj.dict())
+            return {
+                "messages": [
+                    {"role": "assistant", "content": f"```json\n{json_output}\n```"}
+                ]
+            }
+        else:
+            return {
+                "messages": [
+                    {"role": "assistant", "content": "I couldn't generate a quiz for this topic. Please try again."}
+                ]
+            }
+
+    # --- SCENARIO B: VISUAL DIAGRAM (Only if explicitly asked) ---
+    if "diagram" in user_message or "visual" in user_message or "mermaid" in user_message:
+        prompt = f"""
+        User wants a visual diagram for: "{user_message}"
+        Context: {context}
+
+        TASK: Output ONLY a Mermaid.js code block (graph TD or mindmap).
+        Do not write any other text.
+        """
+        llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.0)
+        response = llm.invoke(prompt)
+        return {"messages": [response]}
+
+    # --- SCENARIO C: TEXT ROADMAP (Default) ---
+    # (Removed all Mermaid instructions as requested)
     prompt = f"""
     You are PathFinder, an expert curriculum designer.
 
-    USER REQUEST: "{query}"
+    USER REQUEST: "{user_message}"
     CONTEXT: {context}
 
     YOUR TASK:
-    You must generate a response in exactly two parts.
-
-    PART 1: THE TEXT ROADMAP
-    - Create a detailed, step-by-step learning path (e.g., Week 1, Week 2).
+    Create a detailed, step-by-step learning path (e.g., Week 1, Week 2).
     - Use clear Markdown (Bold headers, bullet points).
     - Tone: Professional, encouraging, and direct.
-    - NEGATIVE CONSTRAINT: DO NOT generate any quizzes, exams, or multiple-choice questions.
+    - If the user asks a general question, answer it clearly based on the context.
+    - NEGATIVE CONSTRAINT: DO NOT generate any quizzes or exams here.
+    - NEGATIVE CONSTRAINT: DO NOT generate any Mermaid diagrams or code blocks.
 
-    PART 2: THE VISUALIZATION
-    - Immediately after the text, provide a Mermaid.js code block.
-    - The diagram MUST strictly represent the "Weeks" or "Steps" you wrote in Part 1.
-    - Syntax: Use `graph TD` (Top-Down) or `mindmap`.
-    - NEGATIVE CONSTRAINT: Do NOT explain how to use Mermaid. Do NOT provide generic examples. Just output the code.
-
-    EXAMPLE OUTPUT FORMAT:
-
-    Here is your plan for [Topic]...
-    * **Week 1:** Basics...
-    * **Week 2:** Advanced...
-
-    ```mermaid
-    graph TD
-      Start((Start)) --> W1[Week 1: Basics]
-      W1 --> T1(Variables)
-      W1 --> T2(Loops)
-      Start --> W2[Week 2: Advanced]
-    ```
+    End your response by suggesting: "Would you like me to generate a **visual roadmap** or a **practice quiz** for this?"
     """
 
     opik_tracer = OpikTracer(tags=["PathFinder_Chat"])
-
-    # Reduced temperature to 0.5 to make it less "imaginative" and more "accurate"
     llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
 
     response = llm.invoke(prompt, config={"callbacks": [opik_tracer]})
@@ -118,7 +143,7 @@ def generate_node(state: AgentState):
     }
 
 
-# Build Graph
+# --- GRAPH BUILD ---
 workflow = StateGraph(AgentState)
 workflow.add_node("retrieve", retrieve_node)
 workflow.add_node("web_search", web_search_node)
