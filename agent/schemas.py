@@ -1,32 +1,32 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-
-# 1. The Plan Structure (For the first step)
+# --- PLAN STRUCTURE ---
 class DayTask(BaseModel):
-    day: str = Field(..., description="Day 1, Day 2, etc.")
+    day: str = Field(..., description="Day identifier (e.g., 'Day 1')")
     task: str = Field(..., description="The specific topic or exercise")
-    resources: str = Field(..., description="A specific search term or link description")
-
 
 class WeekModule(BaseModel):
-    title: str = Field(..., description="Theme of the week (e.g., 'Basics')")
-    days: List[DayTask] = Field(..., description="List of daily tasks")
-
+    title: str = Field(..., description="Theme of the week")
+    days: List[DayTask] = Field(..., description="List of tasks for this week")
 
 class LearningRoadmap(BaseModel):
-    topic: str
-    weeks: List[WeekModule]
+    topic: str = Field(..., description="The subject being learned")
+    weeks: List[WeekModule] = Field(..., description="4-week breakdown")
 
-
-# 2. The Quiz Structure (For the review step)
+# --- QUIZ STRUCTURE ---
 class QuizQuestion(BaseModel):
     question: str
-    options: List[str]
+    options: List[str] = Field(..., description="4 possible answers")
     correct_answer: str
     explanation: str
-
 
 class QuizData(BaseModel):
     topic: str
     questions: List[QuizQuestion]
+
+# --- CHAT RESPONSE STRUCTURE ---
+class AgentResponse(BaseModel):
+    chat_message: str = Field(..., description="Friendly reply text")
+    roadmap: Optional[LearningRoadmap] = Field(None, description="Structured plan if requested")
+    mermaid_code: Optional[str] = Field(None, description="Mermaid.js code if requested")

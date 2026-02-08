@@ -1,34 +1,99 @@
-from typing import TypedDict, Optional, Literal
-from langgraph.graph import StateGraph, END
+import os
+from typing import TypedDict, Optional, List, Any
+from langgraph.graph import StateGraph, END, START
 from langchain_openai import ChatOpenAI
-from agent.schemas import LearningRoadmap, QuizData
+from langchain_core.prompts import ChatPromptTemplate
+from dotenv import load_dotenv
 
-# Output structured data strictly
+from agent.schemas import AgentResponse, LearningRoadmap
+
+load_dotenv()
+
+
+# Define State
+class AgentState(TypedDict):
+    messages: List[Any]  # Chat history
+    user_message: str  # Current input
+    final_response: Optional[dict]  # Output for main.py
+
+
+# Initialize LLM
 llm = ChatOpenAI(model="gpt-4o", temperature=0)
 
 
-class AgentState(TypedDict):
-    user_message: str
-    plan_data: Optional[dict]  # Store the plan here!
-    next_action: Optional[Literal["visualize", "quiz", "none"]]
+# Nodes
+
+def router_node(state: AgentState):
+    """Decides if user wants a plan, a diagram, or just chat."""
+    msg = state['user_message'].lower()
+
+    if "mermaid" in msg or "visualize" in msg or "diagram" in msg:
+        return "visualizer"
+    else:
+        return "planner"
 
 
 def planner_node(state: AgentState):
-    """Generates the text-based plan (JSON)"""
-    planner = llm.with_structured_output(LearningRoadmap)
-    plan = planner.invoke(f"Create a 4-week study plan for: {state['user_message']}")
+    """Generates the Study Plan OR Chat Response"""
 
-    return {"plan_data": plan.dict(), "next_action": "none"}
+    structured_llm = llm.with_structured_output(AgentResponse)
+
+    system_prompt = """
+    You are PathFinder, an expert curriculum designer.
+    - If the user asks to learn a skill, generate a strict 'roadmap' (JSON) AND a 'chat_message'.
+    - If the user just says hello, just provide a 'chat_message'.
+    - DO NOT generate mermaid code in this node.
+    """
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("human", "{user_message}"),
+    ])
+
+    chain = prompt | structured_llm
+    response = chain.invoke({"user_message": state['user_message']})
+
+    return {"final_response": response.dict()}
 
 
 def visualizer_node(state: AgentState):
-    """Generates ONLY the Mermaid Code based on the existing plan"""
-    if not state.get("plan_data"):
-        return {}  # No plan to visualize
+    """Generates ONLY Mermaid Code"""
 
-    prompt = f"Convert this learning plan into a Mermaid.js Mindmap string. Return ONLY the code, no markdown:\n{state['plan_data']}"
-    # We ask for raw text here for simplicity, or use a schema for stricter safety
-    code = llm.invoke(prompt).content.replace("```mermaid", "").replace("```", "")
-    return {"mermaid_code": code}
+    # Simple prompt to get just the code
+    prompt = f"Create a Mermaid.js MindMap (graph TD) for the topic: {state['user_message']}. Return ONLY the code inside the string. No markdown formatting."
 
-# ... (Quiz node logic is similar: takes plan_data -> generates QuizData)
+    result = llm.invoke(prompt)
+    clean_code = result.content.replace("```mermaid", "").replace("```", "").strip()
+
+    # Return a response object with JUST the mermaid code
+    return {
+        "final_response": {
+            "chat_message": "Here is your visual roadmap.",
+            "roadmap": None,
+            "mermaid_code": clean_code
+        }
+    }
+
+
+#Graph
+
+workflow = StateGraph(AgentState)
+
+# Add Nodes
+workflow.add_node("planner", planner_node)
+workflow.add_node("visualizer", visualizer_node)
+
+# Add Conditional Routing
+workflow.add_conditional_edges(
+    START,
+    router_node,
+    {
+        "planner": "planner",
+        "visualizer": "visualizer"
+    }
+)
+
+workflow.add_edge("planner", END)
+workflow.add_edge("visualizer", END)
+
+app = workflow.compile()
