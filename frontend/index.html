@@ -255,7 +255,7 @@
                     body: JSON.stringify({
                         message: messageText,
                         thread_id: currentThreadId,
-                        username: safeUser
+                        username: currentUser || undefined
                     })
                 });
 
