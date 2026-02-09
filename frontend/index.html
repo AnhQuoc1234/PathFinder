@@ -15,6 +15,7 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 10px; }
+        input[type="checkbox"]:checked + span { text-decoration: line-through; color: #9ca3af; }
     </style>
 </head>
 <body class="bg-white text-gray-800 h-screen flex flex-col overflow-hidden">
@@ -23,7 +24,7 @@
         <div class="bg-white rounded-2xl shadow-2xl p-8 w-96 max-w-full relative">
             <button onclick="toggleAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
             <h2 id="auth-title" class="text-2xl font-bold text-gray-800 mb-2 text-center">Login</h2>
-            <p class="text-center text-sm text-gray-500 mb-6">Save your progress</p>
+            <p class="text-center text-sm text-gray-500 mb-6">Save your progress and history</p>
             <input type="text" id="auth-user" placeholder="Username" class="w-full bg-gray-100 p-3 rounded-lg mb-3 border focus:border-blue-500 outline-none">
             <input type="password" id="auth-pass" placeholder="Password" class="w-full bg-gray-100 p-3 rounded-lg mb-6 border focus:border-blue-500 outline-none">
             <button onclick="handleAuth()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition mb-4 shadow-lg">
@@ -72,7 +73,8 @@
                 <span class="font-bold text-gray-700">Your Sessions</span>
                 <button onclick="startNewSession()" class="bg-white text-blue-600 border border-blue-100 hover:bg-blue-50 p-2 rounded-lg transition shadow-sm" title="New Session"><i class="fa-solid fa-plus"></i></button>
             </div>
-            <div id="thread-list" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
+            <div id="thread-list" class="flex-1 overflow-y-auto p-3 space-y-2">
+                </div>
             <button onclick="backToHome()" class="p-4 text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2 border-t hover:bg-gray-100 transition"><i class="fa-solid fa-arrow-left"></i> Back to Home</button>
         </div>
 
@@ -92,7 +94,7 @@
 
             <div class="p-4 bg-white border-t border-gray-100 absolute bottom-0 w-full z-20">
                 <div class="max-w-4xl mx-auto relative flex items-center gap-3">
-                    <input type="text" id="user-input" class="w-full bg-gray-100 text-gray-800 rounded-2xl pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm" placeholder="Type your goal (e.g., 'Learn Python in 4 weeks')..." onkeypress="handleEnter(event)">
+                    <input type="text" id="user-input" class="w-full bg-gray-100 text-gray-800 rounded-2xl pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm" placeholder="Type your goal..." onkeypress="handleEnter(event)">
                     <button onclick="sendMessage()" class="absolute right-3 bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md transition transform hover:scale-105"><i class="fa-solid fa-paper-plane text-sm"></i></button>
                 </div>
             </div>
@@ -218,7 +220,7 @@
                     let dateStr = "Session";
                     try {
                         const ts = parseInt(tid.split('_')[1]);
-                        if(!isNaN(ts)) dateStr = new Date(ts).toLocaleDateString();
+                        if(!isNaN(ts)) dateStr = new Date(ts).toLocaleDateString() + " " + new Date(ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                     } catch(e){}
 
                     btn.className = "w-full text-left p-3 rounded-lg hover:bg-blue-50 text-sm text-gray-700 flex items-center gap-2 transition border border-transparent hover:border-blue-100 mb-1";
@@ -234,39 +236,29 @@
             currentThreadId = threadId;
             localStorage.setItem("pathfinder_thread", currentThreadId);
             document.getElementById('chat-box').innerHTML = '';
-            if(currentUser) loadSidebarThreads();
-
-            // FIXED: Ensure username is never null to avoid 422
-            const safeUser = currentUser || "Guest";
+            loadSidebarThreads();
 
             try {
-                const response = await fetch(`${API_URL}/history`, {
+                const res = await fetch(`${API_URL}/history`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        username: safeUser,
-                        user_id: safeUser,
-                        thread_id: threadId
-                    })
+                    body: JSON.stringify({ username: currentUser, thread_id: threadId })
                 });
+                const data = await res.json();
 
-                if (!response.ok) {
-                   console.warn("History failed to load (likely empty new thread).");
-                   return;
-                }
-
-                const data = await response.json();
                 if(!data.history || data.history.length === 0) {
                     addMessage("bot", "Starting new session...");
                 } else {
                     data.history.forEach(msg => {
-                        const content = msg.content.replace("[PLAN_CREATED]", "").trim();
-                        addMessage(msg.role === 'user' ? 'user' : 'bot', content);
+                        if(msg.content.includes("[PLAN_CREATED]")) {
+                            const cleanText = msg.content.split("\n\n[PLAN_CREATED]")[0];
+                            addMessage(msg.role === 'user' ? 'user' : 'bot', cleanText);
+                        } else {
+                             addMessage(msg.role === 'user' ? 'user' : 'bot', msg.content);
+                        }
                     });
                 }
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error(e); }
         }
 
         async function sendMessage(manualMessage = null) {
@@ -279,40 +271,30 @@
             showTyping(true);
 
             if(!currentThreadId) currentThreadId = (currentUser ? "user_" : "guest_") + Date.now();
-            const safeUser = currentUser || "Guest";
 
             try {
-                // *** BULLETPROOF PAYLOAD ***
-                // We send every possible key name to ensure one matches the Backend Pydantic model.
-                // This prevents 422 Validation Errors due to "Missing Field".
-                const payload = {
-                    user_message: messageText,
-                    message: messageText,
-                    query: messageText,
-                    user_input: messageText,
-                    thread_id: currentThreadId,
-                    username: safeUser,
-                    user_id: safeUser
-                };
-
+                // FIXED: Using "message" instead of "user_message"
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        message: messageText,
+                        thread_id: currentThreadId,
+                        username: currentUser
+                    })
                 });
 
                 if (!response.ok) {
-                    const errText = await response.text();
-                    console.error("SERVER ERROR DETAILS:", errText);
-                    throw new Error(`Server ${response.status}: ${errText}`);
+                    throw new Error(`Server status: ${response.status}`);
                 }
 
                 const data = await response.json();
                 showTyping(false);
 
-                // Handle response variations
-                const botText = data.reply || data.response || data.message || "Here is your plan:";
-                addMessage("bot", botText);
+                // Check for various response keys
+                const botText = data.reply || data.response || data.message || "No text response.";
+
+                if (botText) addMessage("bot", botText);
 
                 if (data.plan) {
                     renderPlanCard(data.plan);
@@ -325,8 +307,8 @@
 
             } catch (error) {
                 showTyping(false);
-                console.error("Chat Error:", error);
-                addMessage("bot", `⚠️ Error: ${error.message}. Check console for details.`);
+                console.error(error);
+                addMessage("bot", "⚠️ Connection Error. Please check console for details.");
             }
         }
 
