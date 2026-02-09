@@ -246,14 +246,14 @@
 
             if(!currentThreadId) currentThreadId = (currentUser ? "user_" : "guest_") + Date.now();
 
-            try {
-                // CORRECT PAYLOAD STRUCTURE - Matches your Pydantic model exactly
-                const payload = {
-                    message: messageText,      // NOT user_message!
-                    thread_id: currentThreadId,
-                    username: currentUser || undefined  // Optional field
-                };
+            // GUARANTEED CORRECT PAYLOAD FORMAT
+            const payload = {
+                message: messageText,
+                thread_id: currentThreadId,
+                username: currentUser || undefined
+            };
 
+            try {
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -261,6 +261,8 @@
                 });
 
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("Server error response:", errorText);
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
