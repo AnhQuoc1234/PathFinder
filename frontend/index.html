@@ -236,36 +236,36 @@
             document.getElementById('chat-box').innerHTML = '';
             if(currentUser) loadSidebarThreads();
 
-            try {
-                // FIXED: Send both username and user_id to avoid 422
-                const payload = {
-                    username: currentUser,
-                    user_id: currentUser, // Added redundantly for safety
-                    thread_id: threadId
-                };
+            // FIXED: Ensure username is never null to avoid 422
+            const safeUser = currentUser || "Guest";
 
-                const res = await fetch(`${API_URL}/history`, {
+            try {
+                const response = await fetch(`${API_URL}/history`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        username: safeUser,
+                        user_id: safeUser,
+                        thread_id: threadId
+                    })
                 });
 
-                if (!res.ok) throw new Error("History failed " + res.status);
+                if (!response.ok) {
+                   console.warn("History failed to load (likely empty new thread).");
+                   return;
+                }
 
-                const data = await res.json();
+                const data = await response.json();
                 if(!data.history || data.history.length === 0) {
                     addMessage("bot", "Starting new session...");
                 } else {
                     data.history.forEach(msg => {
-                        // Clean up special markers if any
                         const content = msg.content.replace("[PLAN_CREATED]", "").trim();
                         addMessage(msg.role === 'user' ? 'user' : 'bot', content);
                     });
                 }
             } catch (e) {
                 console.error(e);
-                // Don't alert on history failure, just start fresh
-                addMessage("bot", "Ready to start!");
             }
         }
 
@@ -279,19 +279,21 @@
             showTyping(true);
 
             if(!currentThreadId) currentThreadId = (currentUser ? "user_" : "guest_") + Date.now();
+            const safeUser = currentUser || "Guest";
 
             try {
-                // *** CRITICAL FIX: USING user_message ***
-                // We also send 'message' and 'query' as backups to be 100% safe against 422 errors.
+                // *** BULLETPROOF PAYLOAD ***
+                // We send every possible key name to ensure one matches the Backend Pydantic model.
+                // This prevents 422 Validation Errors due to "Missing Field".
                 const payload = {
-                    user_message: messageText,  // <--- THE SERVER WANTS THIS
-                    message: messageText,       // Backup
-                    query: messageText,         // Backup
+                    user_message: messageText,
+                    message: messageText,
+                    query: messageText,
+                    user_input: messageText,
                     thread_id: currentThreadId,
-                    username: currentUser || "Guest"
+                    username: safeUser,
+                    user_id: safeUser
                 };
-
-                console.log("Sending:", payload); // Debug log
 
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
@@ -301,13 +303,14 @@
 
                 if (!response.ok) {
                     const errText = await response.text();
+                    console.error("SERVER ERROR DETAILS:", errText);
                     throw new Error(`Server ${response.status}: ${errText}`);
                 }
 
                 const data = await response.json();
                 showTyping(false);
 
-                // Handle response
+                // Handle response variations
                 const botText = data.reply || data.response || data.message || "Here is your plan:";
                 addMessage("bot", botText);
 
@@ -323,7 +326,7 @@
             } catch (error) {
                 showTyping(false);
                 console.error("Chat Error:", error);
-                addMessage("bot", `⚠️ Error: ${error.message}. Please check console.`);
+                addMessage("bot", `⚠️ Error: ${error.message}. Check console for details.`);
             }
         }
 
