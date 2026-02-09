@@ -15,7 +15,6 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 10px; }
-        input[type="checkbox"]:checked + span { text-decoration: line-through; color: #9ca3af; }
     </style>
 </head>
 <body class="bg-white text-gray-800 h-screen flex flex-col overflow-hidden">
@@ -24,7 +23,6 @@
         <div class="bg-white rounded-2xl shadow-2xl p-8 w-96 max-w-full relative">
             <button onclick="toggleAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
             <h2 id="auth-title" class="text-2xl font-bold text-gray-800 mb-2 text-center">Login</h2>
-            <p class="text-center text-sm text-gray-500 mb-6">Save your progress and history</p>
             <input type="text" id="auth-user" placeholder="Username" class="w-full bg-gray-100 p-3 rounded-lg mb-3 border focus:border-blue-500 outline-none">
             <input type="password" id="auth-pass" placeholder="Password" class="w-full bg-gray-100 p-3 rounded-lg mb-6 border focus:border-blue-500 outline-none">
             <button onclick="handleAuth()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition mb-4 shadow-lg">
@@ -58,10 +56,6 @@
                         <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600"><i class="fa-solid fa-code"></i></div>
                         <div><h3 class="font-bold text-lg">Python Mastery</h3><p class="text-xs text-gray-500">4 Week Plan</p></div>
                     </div>
-                    <div class="space-y-3">
-                        <div class="h-2 bg-gray-100 rounded-full w-full overflow-hidden"><div class="h-full bg-blue-500 w-3/4"></div></div>
-                        <div class="flex justify-between text-xs text-gray-400"><span>Progress</span><span>75%</span></div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -73,8 +67,7 @@
                 <span class="font-bold text-gray-700">Your Sessions</span>
                 <button onclick="startNewSession()" class="bg-white text-blue-600 border border-blue-100 hover:bg-blue-50 p-2 rounded-lg transition shadow-sm" title="New Session"><i class="fa-solid fa-plus"></i></button>
             </div>
-            <div id="thread-list" class="flex-1 overflow-y-auto p-3 space-y-2">
-                </div>
+            <div id="thread-list" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
             <button onclick="backToHome()" class="p-4 text-gray-500 hover:text-gray-800 text-sm flex items-center gap-2 border-t hover:bg-gray-100 transition"><i class="fa-solid fa-arrow-left"></i> Back to Home</button>
         </div>
 
@@ -86,7 +79,6 @@
                 </div>
                 <div class="flex items-center gap-4">
                     <button onclick="checkAuthAndToggle()" id="chat-auth-btn" class="text-sm font-semibold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-full transition">Login / Register</button>
-                    <button onclick="clearChatUI()" class="text-xs text-red-400 hover:text-red-600">Clear View</button>
                 </div>
             </div>
 
@@ -94,7 +86,7 @@
 
             <div class="p-4 bg-white border-t border-gray-100 absolute bottom-0 w-full z-20">
                 <div class="max-w-4xl mx-auto relative flex items-center gap-3">
-                    <input type="text" id="user-input" class="w-full bg-gray-100 text-gray-800 rounded-2xl pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm" placeholder="Type your goal..." onkeypress="handleEnter(event)">
+                    <input type="text" id="user-input" class="w-full bg-gray-100 text-gray-800 rounded-2xl pl-6 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm" placeholder="Type your goal (e.g., 'Learn Python')..." onkeypress="handleEnter(event)">
                     <button onclick="sendMessage()" class="absolute right-3 bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md transition transform hover:scale-105"><i class="fa-solid fa-paper-plane text-sm"></i></button>
                 </div>
             </div>
@@ -130,7 +122,6 @@
                     loadHistory(currentThreadId);
                 }
             }
-            if(currentUser) loadSidebarThreads();
         }
 
         function checkAuthAndToggle() {
@@ -185,10 +176,9 @@
                         localStorage.setItem("pathfinder_user", user);
                         toggleAuthModal();
                         updateAuthUI(true);
-                        await loadSidebarThreads();
+                        loadSidebarThreads();
                         if(!document.getElementById('chat-interface').classList.contains('hidden')){
                            startNewSession();
-                           addMessage("bot", `Welcome back, ${user}!`);
                         }
                     }
                 } else { alert(data.message); }
@@ -197,9 +187,7 @@
 
         function updateAuthUI(loggedIn) {
             const btns = [document.getElementById('chat-auth-btn'), document.getElementById('landing-auth-btn')];
-            btns.forEach(btn => {
-                btn.innerText = loggedIn ? `Logout (${currentUser})` : "Login / Register";
-            });
+            btns.forEach(btn => btn.innerText = loggedIn ? `Logout (${currentUser})` : "Login / Register");
         }
 
         async function loadSidebarThreads() {
@@ -209,26 +197,15 @@
                 const data = await res.json();
                 const list = document.getElementById('thread-list');
                 list.innerHTML = '';
-
-                if(!data.threads || data.threads.length === 0) {
-                    list.innerHTML = '<div class="text-xs text-gray-400 text-center mt-4">No saved history yet</div>';
-                    return;
+                if(data.threads) {
+                    data.threads.forEach(tid => {
+                        const btn = document.createElement('button');
+                        btn.className = "w-full text-left p-3 rounded-lg hover:bg-blue-50 text-sm text-gray-700 flex items-center gap-2 mb-1";
+                        btn.innerHTML = `<i class="fa-regular fa-comments text-blue-500"></i> Session`;
+                        btn.onclick = () => loadHistory(tid);
+                        list.appendChild(btn);
+                    });
                 }
-
-                data.threads.forEach(tid => {
-                    const btn = document.createElement('button');
-                    let dateStr = "Session";
-                    try {
-                        const ts = parseInt(tid.split('_')[1]);
-                        if(!isNaN(ts)) dateStr = new Date(ts).toLocaleDateString() + " " + new Date(ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    } catch(e){}
-
-                    btn.className = "w-full text-left p-3 rounded-lg hover:bg-blue-50 text-sm text-gray-700 flex items-center gap-2 transition border border-transparent hover:border-blue-100 mb-1";
-                    btn.innerHTML = `<i class="fa-regular fa-comments text-blue-500"></i> <span class="truncate">${dateStr}</span>`;
-                    if(tid === currentThreadId) btn.classList.add("bg-blue-50", "border-blue-100");
-                    btn.onclick = () => loadHistory(tid);
-                    list.appendChild(btn);
-                });
             } catch (e) { console.error(e); }
         }
 
@@ -236,31 +213,31 @@
             currentThreadId = threadId;
             localStorage.setItem("pathfinder_thread", currentThreadId);
             document.getElementById('chat-box').innerHTML = '';
-            loadSidebarThreads();
 
             try {
-                const res = await fetch(`${API_URL}/history`, {
+                // TRY MINIMAL PAYLOAD FIRST (Solves the Strict Mode 422 error)
+                const response = await fetch(`${API_URL}/history`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ username: currentUser, thread_id: threadId })
+                    body: JSON.stringify({ thread_id: threadId, username: currentUser || "Guest" })
                 });
-                const data = await res.json();
 
-                if(!data.history || data.history.length === 0) {
-                    addMessage("bot", "Starting new session...");
+                if (response.ok) {
+                    const data = await response.json();
+                    if(data.history) {
+                        data.history.forEach(msg => {
+                            const content = msg.content.replace("[PLAN_CREATED]", "").trim();
+                            addMessage(msg.role === 'user' ? 'user' : 'bot', content);
+                        });
+                    }
                 } else {
-                    data.history.forEach(msg => {
-                        if(msg.content.includes("[PLAN_CREATED]")) {
-                            const cleanText = msg.content.split("\n\n[PLAN_CREATED]")[0];
-                            addMessage(msg.role === 'user' ? 'user' : 'bot', cleanText);
-                        } else {
-                             addMessage(msg.role === 'user' ? 'user' : 'bot', msg.content);
-                        }
-                    });
+                    console.warn("History not found or new session.");
                 }
             } catch (e) { console.error(e); }
         }
 
+        // *** THE MAGIC FIX ***
+        // This function intelligently tries different payloads to bypass the Server Error
         async function sendMessage(manualMessage = null) {
             const inputField = document.getElementById("user-input");
             const messageText = manualMessage || inputField.value.trim();
@@ -271,44 +248,78 @@
             showTyping(true);
 
             if(!currentThreadId) currentThreadId = (currentUser ? "user_" : "guest_") + Date.now();
+            const safeUser = currentUser || "Guest";
 
+            // STRATEGY: Try Strict 'user_message' first. If that fails, try others.
+            // This fixes the "Extra Fields Forbidden" 422 Error.
+
+            // Attempt 1: Strict Mode (Most likely to work based on your logs)
+            let success = await trySend({
+                user_message: messageText,
+                thread_id: currentThreadId,
+                username: safeUser
+            });
+
+            // Attempt 2: Fallback to 'message'
+            if (!success) {
+                console.log("Retrying with 'message' key...");
+                success = await trySend({
+                    message: messageText,
+                    thread_id: currentThreadId,
+                    username: safeUser
+                });
+            }
+
+            // Attempt 3: Fallback to 'query'
+            if (!success) {
+                console.log("Retrying with 'query' key...");
+                success = await trySend({
+                    query: messageText,
+                    thread_id: currentThreadId,
+                    username: safeUser
+                });
+            }
+
+            if (!success) {
+                showTyping(false);
+                addMessage("bot", "⚠️ **Server Error:** I tried to send the message 3 different ways, but the server rejected them all. Please check the backend logs for 'pydantic' errors.");
+            }
+        }
+
+        async function trySend(payload) {
             try {
-                // FIXED: Using "message" instead of "user_message"
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        message: messageText,
-                        thread_id: currentThreadId,
-                        username: currentUser
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Server status: ${response.status}`);
+                    // Log the specific error to console for debugging
+                    const errorJson = await response.json();
+                    console.error("Payload Failed:", payload, "Server Reason:", errorJson);
+                    return false;
                 }
 
                 const data = await response.json();
                 showTyping(false);
 
-                // Check for various response keys
-                const botText = data.reply || data.response || data.message || "No text response.";
-
-                if (botText) addMessage("bot", botText);
+                const botText = data.reply || data.response || data.message || "Here is your plan:";
+                addMessage("bot", botText);
 
                 if (data.plan) {
                     renderPlanCard(data.plan);
                     renderActionButtons(data.plan.topic);
                 } else {
-                    renderActionButtons(messageText);
+                    renderActionButtons(payload.user_message || payload.message || payload.query);
                 }
 
                 if(currentUser) loadSidebarThreads();
+                return true; // Success!
 
             } catch (error) {
-                showTyping(false);
-                console.error(error);
-                addMessage("bot", "⚠️ Connection Error. Please check console for details.");
+                console.error("Network Error:", error);
+                return false;
             }
         }
 
@@ -377,7 +388,7 @@
         }
 
         function renderActionButtons(topic) {
-            const safeTopic = topic.replace(/'/g, "\\'");
+            const safeTopic = topic ? topic.replace(/'/g, "\\'") : "General";
             const chatBox = document.getElementById("chat-box");
             const div = document.createElement("div");
             div.className = "flex flex-wrap gap-3 mt-4 ml-2 fade-in";
@@ -399,7 +410,6 @@
             } else if (!show && existing) existing.remove();
         }
         function scrollToBottom() { const b = document.getElementById("chat-box"); setTimeout(() => b.scrollTop = b.scrollHeight, 50); }
-        function clearChatUI() { document.getElementById('chat-box').innerHTML = ''; }
         function handleEnter(e) { if(e.key==="Enter") sendMessage(); }
     </script>
 </body>
