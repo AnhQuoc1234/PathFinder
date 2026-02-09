@@ -235,8 +235,7 @@
             } catch (e) { console.log("New session or history unavailable"); }
         }
 
-        // *** THE BRUTE FORCE FIX ***
-        // Tries 4 different keys until one works.
+        // FIXED VERSION - Simplified and properly formatted request
         async function sendMessage(manualMessage = null) {
             const inputField = document.getElementById("user-input");
             const messageText = manualMessage || inputField.value.trim();
@@ -249,61 +248,20 @@
             if(!currentThreadId) currentThreadId = (currentUser ? "user_" : "guest_") + Date.now();
             const safeUser = currentUser || "Guest";
 
-            let success = false;
-
-            // ATTEMPT 1: The "Minimalist" (Avoids 'extra field' errors)
-            if (!success) {
-                console.log("Trying: user_message + thread_id");
-                success = await trySend({
-                    user_message: messageText,
-                    thread_id: currentThreadId
-                });
-            }
-
-            // ATTEMPT 2: The "Complete" (Adds user_id - common requirement)
-            if (!success) {
-                console.log("Trying: user_message + thread_id + user_id");
-                success = await trySend({
-                    user_message: messageText,
-                    thread_id: currentThreadId,
-                    user_id: safeUser
-                });
-            }
-
-            // ATTEMPT 3: The "Username" (Adds username - what we tried before)
-            if (!success) {
-                console.log("Trying: user_message + thread_id + username");
-                success = await trySend({
-                    user_message: messageText,
-                    thread_id: currentThreadId,
-                    username: safeUser
-                });
-            }
-
-            // ATTEMPT 4: The "Legacy" (Old 'message' key)
-            if (!success) {
-                console.log("Trying: message + thread_id");
-                success = await trySend({
-                    message: messageText,
-                    thread_id: currentThreadId
-                });
-            }
-
-            if (!success) {
-                showTyping(false);
-                addMessage("bot", "⚠️ **Connection Failed.** I tried 4 different ways to talk to the server, but it rejected them all. Please check your Render Logs one last time.");
-            }
-        }
-
-        async function trySend(payload) {
             try {
                 const response = await fetch(`${API_URL}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        message: messageText,
+                        thread_id: currentThreadId,
+                        username: safeUser
+                    })
                 });
 
-                if (!response.ok) return false;
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
                 const data = await response.json();
                 showTyping(false);
@@ -315,16 +273,19 @@
                     renderPlanCard(data.plan);
                     renderActionButtons(data.plan.topic);
                 } else {
-                    renderActionButtons(payload.user_message || payload.message);
+                    renderActionButtons(messageText);
                 }
 
                 if(currentUser) loadSidebarThreads();
-                return true;
 
             } catch (error) {
-                return false;
+                showTyping(false);
+                console.error("Chat error:", error);
+                addMessage("bot", "⚠️ **Connection Failed.** Please try again later.");
             }
         }
+
+        // Removed the brute force approach functions since they're not needed anymore
 
         function addMessage(role, text) {
             const chatBox = document.getElementById("chat-box");
