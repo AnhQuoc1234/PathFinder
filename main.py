@@ -64,6 +64,7 @@ def get_history_endpoint(req: HistoryRequest):
     history = [{"role": r[0], "content": r[1]} for r in rows]
     return {"history": history}
 
+
 @app.post("/chat")
 def chat_endpoint(req: ChatRequest):
     try:
@@ -71,20 +72,26 @@ def chat_endpoint(req: ChatRequest):
         if req.username:
             db_rows = get_history(req.username, req.thread_id)
             for role, content in db_rows:
-                if role == "user": messages.append(HumanMessage(content=content))
-                else: messages.append(AIMessage(content=content))
+                if role == "user":
+                    messages.append(HumanMessage(content=content))
+                else:
+                    messages.append(AIMessage(content=content))
         else:
             messages = guest_store.get(req.thread_id, [])
 
         messages.append(HumanMessage(content=req.message))
 
-        result = agent_app.invoke({"messages": messages})
+        # FIX: Pass both messages and message field to the agent
+        result = agent_app.invoke({
+            "messages": messages,
+            "message": req.message,
+            "user_message": req.message
+        })
+
         data = result.get("final_response", {})
         reply = data.get("chat_message", "")
         plan = data.get("roadmap")
 
-        # Create a combined string for DB if there is a plan, to ensure it shows in history
-        # (Simple workaround to save complex state in text-only DB column)
         db_content = reply
         if plan:
             db_content += f"\n\n[PLAN_CREATED]: {plan.get('topic')}"
@@ -101,6 +108,7 @@ def chat_endpoint(req: ChatRequest):
     except Exception as e:
         print(f"Error: {e}")
         return {"reply": "Error processing request", "status": "error"}
+
 
 @app.post("/quiz")
 def quiz_endpoint(req: QuizRequest):

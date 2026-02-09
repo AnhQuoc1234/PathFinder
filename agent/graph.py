@@ -11,7 +11,8 @@ load_dotenv()
 
 class AgentState(TypedDict):
     messages: List[Any]
-    message: str  # Changed from 'user_message' to 'message'
+    message: str  # Primary field
+    user_message: Optional[str]  # For backward compatibility
     final_response: Optional[dict]
 
 
@@ -29,11 +30,15 @@ def planner_node(state: AgentState):
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
-        ("human", "{message}"),  # Changed from 'user_message' to 'message'
+        ("human", "{input_message}"),
     ])
 
     chain = prompt | structured_llm
-    response = chain.invoke({"message": state['message']})  # Changed here too
+
+    # Try both field names
+    input_message = state.get('message') or state.get('user_message') or state.get('messages', [''])[-1].content
+
+    response = chain.invoke({"input_message": input_message})
 
     return {"final_response": response.dict()}
 
