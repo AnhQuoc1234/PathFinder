@@ -11,7 +11,7 @@ load_dotenv()
 
 class AgentState(TypedDict):
     messages: List[Any]
-    user_message: str
+    messages: str
     final_response: Optional[dict]
 
 
