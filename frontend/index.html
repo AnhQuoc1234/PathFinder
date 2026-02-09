@@ -15,6 +15,8 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 10px; }
+        .completed-task { opacity: 0.7; }
+        .completed-task span { text-decoration: line-through; color: #6b7280; }
     </style>
 </head>
 <body class="bg-white text-gray-800 h-screen flex flex-col overflow-hidden">
@@ -98,6 +100,7 @@
         let currentUser = localStorage.getItem("pathfinder_user");
         let currentThreadId = localStorage.getItem("pathfinder_thread");
         let isRegistering = false;
+        let learningProgress = JSON.parse(localStorage.getItem('learning_progress') || '{}');
 
         window.onload = function() {
             if (currentUser) {
@@ -131,8 +134,10 @@
         function handleLogout() {
             localStorage.removeItem("pathfinder_user");
             localStorage.removeItem("pathfinder_thread");
+            localStorage.removeItem("learning_progress");
             currentUser = null;
             currentThreadId = null;
+            learningProgress = {};
             updateAuthUI(false);
             document.getElementById('thread-list').innerHTML = '';
             document.getElementById('chat-box').innerHTML = '';
@@ -144,6 +149,11 @@
             localStorage.setItem("pathfinder_thread", currentThreadId);
             document.getElementById('chat-box').innerHTML = '';
             addMessage("bot", "Hello! I am PathFinder. What skill would you like to master today?");
+
+            // Reload sidebar to show new session
+            if(currentUser) {
+                setTimeout(() => loadSidebarThreads(), 300);
+            }
         }
 
         function toggleAuthModal() { document.getElementById('auth-modal').classList.toggle('hidden'); }
@@ -198,10 +208,20 @@
                 const list = document.getElementById('thread-list');
                 list.innerHTML = '';
                 if(data.threads) {
-                    data.threads.forEach(tid => {
+                    // Sort threads by timestamp (newest first)
+                    const sortedThreads = data.threads.sort((a, b) => {
+                        const timeA = parseInt(a.split('_')[1]) || 0;
+                        const timeB = parseInt(b.split('_')[1]) || 0;
+                        return timeB - timeA;
+                    });
+
+                    sortedThreads.forEach(tid => {
                         const btn = document.createElement('button');
                         btn.className = "w-full text-left p-3 rounded-lg hover:bg-blue-50 text-sm text-gray-700 flex items-center gap-2 mb-1";
-                        btn.innerHTML = `<i class="fa-regular fa-comments text-blue-500"></i> Session`;
+                        // Create readable session name
+                        const timestamp = tid.split('_')[1];
+                        const date = timestamp ? new Date(parseInt(timestamp)).toLocaleDateString() : 'Session';
+                        btn.innerHTML = `<i class="fa-regular fa-comments text-blue-500"></i> ${date}`;
                         btn.onclick = () => loadHistory(tid);
                         list.appendChild(btn);
                     });
@@ -215,7 +235,10 @@
             document.getElementById('chat-box').innerHTML = '';
 
             try {
-                const payload = { thread_id: threadId, username: currentUser || "Guest" };
+                const payload = {
+                    thread_id: threadId,
+                    username: currentUser
+                };
                 const response = await fetch(`${API_URL}/history`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -234,7 +257,7 @@
             } catch (e) { console.log("New session or history unavailable"); }
         }
 
-        // COMPLETELY REWRITTEN sendMessage function - FIXED VERSION
+        // COMPLETELY FIXED sendMessage function with all new features
         async function sendMessage(manualMessage = null) {
             const inputField = document.getElementById("user-input");
             const messageText = manualMessage || inputField.value.trim();
@@ -244,7 +267,10 @@
             inputField.value = "";
             showTyping(true);
 
-            if(!currentThreadId) currentThreadId = (currentUser ? "user_" : "guest_") + Date.now();
+            if(!currentThreadId) {
+                currentThreadId = (currentUser ? "user_" : "guest_") + Date.now();
+                localStorage.setItem("pathfinder_thread", currentThreadId);
+            }
 
             // GUARANTEED CORRECT PAYLOAD FORMAT
             const payload = {
@@ -272,14 +298,17 @@
                 const botText = data.reply || data.response || data.message || "Here is your plan:";
                 addMessage("bot", botText);
 
-                if (data.plan) {
+                // ONLY show quiz button if we received a learning plan
+                if (data.plan && data.plan.topic) {
                     renderPlanCard(data.plan);
-                    renderActionButtons(data.plan.topic);
-                } else {
-                    renderActionButtons(messageText);
+                    renderActionButtons(data.plan.topic); // Show quiz for roadmap topics only
                 }
+                // Don't show quiz button for general conversation
 
-                if(currentUser) loadSidebarThreads();
+                // Refresh sidebar to ensure current session is visible
+                if(currentUser) {
+                    loadSidebarThreads();
+                }
 
             } catch (error) {
                 showTyping(false);
@@ -302,22 +331,163 @@
             scrollToBottom();
         }
 
+        // ENHANCED Plan Card with Progress Tracking
         function renderPlanCard(plan) {
             const chatBox = document.getElementById("chat-box");
             const div = document.createElement("div");
             div.className = "w-full max-w-3xl mt-4 fade-in self-start";
+
+            // Get current progress for this thread
+            const threadProgress = learningProgress[currentThreadId] || [];
+
             let html = `
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
-                    <div class="bg-blue-600 p-4 text-white"><h3 class="font-bold text-lg">Path: ${plan.topic}</h3></div>
+                    <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
+                        <h3 class="font-bold text-lg">Path: ${plan.topic}</h3>
+                        <div class="flex gap-2">
+                            <button onclick="exportPlan('${plan.topic}', this)" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-sm flex items-center gap-1">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                        </div>
+                    </div>
                     <div class="p-6 space-y-6">`;
+
             if (plan.weeks) {
                 plan.weeks.forEach((week, i) => {
-                    html += `<div class="border-l-4 border-blue-200 pl-4"><h4 class="font-bold text-gray-800 mb-2">Week ${i + 1}: ${week.title}</h4>
-                            <div class="space-y-2">${week.days.map((d) => `<label class="flex items-start gap-3 cursor-pointer group"><input type="checkbox" class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300"><span class="text-sm text-gray-600 group-hover:text-gray-800 transition"><strong>${d.day}:</strong> ${d.task}</span></label>`).join('')}</div></div>`;
+                    html += `<div class="border-l-4 border-blue-200 pl-4">
+                        <h4 class="font-bold text-gray-800 mb-2">Week ${i + 1}: ${week.title}</h4>
+                        <div class="space-y-2">`;
+
+                    week.days.forEach((d, dayIndex) => {
+                        const taskId = `${currentThreadId}_${d.day}`;
+                        const isChecked = threadProgress.includes(taskId);
+                        html += `
+                            <label class="flex items-start gap-3 cursor-pointer group ${isChecked ? 'completed-task' : ''}">
+                                <input type="checkbox"
+                                       class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300"
+                                       ${isChecked ? 'checked' : ''}
+                                       onchange="toggleTaskCompletion(this, '${taskId}', '${d.day}')">
+                                <span class="text-sm text-gray-600 group-hover:text-gray-800 transition">
+                                    <strong>${d.day}:</strong> ${d.task}
+                                </span>
+                            </label>`;
+                    });
+
+                    html += `</div></div>`;
                 });
             }
+
+            // Add resource recommendations section
+            if (plan.resources && plan.resources.length > 0) {
+                html += `
+                    <div class="border-t border-gray-200 pt-4 mt-4">
+                        <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                            <i class="fas fa-book"></i> Recommended Resources
+                        </h4>
+                        <div class="grid gap-3">`;
+
+                plan.resources.forEach(resource => {
+                    html += `
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <div class="font-medium text-gray-800">${resource.title}</div>
+                            <div class="text-sm text-gray-600 mt-1">${resource.description}</div>
+                            <a href="${resource.url}" target="_blank" class="text-blue-600 hover:underline text-sm mt-2 inline-block">
+                                View Resource <i class="fas fa-external-link-alt text-xs"></i>
+                            </a>
+                        </div>`;
+                });
+
+                html += `</div></div>`;
+            }
+
             html += `</div></div>`;
             div.innerHTML = html;
+            chatBox.appendChild(div);
+            scrollToBottom();
+        }
+
+        // Progress Tracking Functions
+        function toggleTaskCompletion(checkbox, taskId, taskName) {
+            if (!learningProgress[currentThreadId]) {
+                learningProgress[currentThreadId] = [];
+            }
+
+            if (checkbox.checked) {
+                if (!learningProgress[currentThreadId].includes(taskId)) {
+                    learningProgress[currentThreadId].push(taskId);
+                }
+                checkbox.parentElement.classList.add('completed-task');
+            } else {
+                learningProgress[currentThreadId] = learningProgress[currentThreadId].filter(id => id !== taskId);
+                checkbox.parentElement.classList.remove('completed-task');
+            }
+
+            localStorage.setItem('learning_progress', JSON.stringify(learningProgress));
+
+            // Update visual styling
+            const span = checkbox.nextElementSibling;
+            if (checkbox.checked) {
+                span.style.textDecoration = 'line-through';
+                span.style.color = '#6b7280';
+            } else {
+                span.style.textDecoration = 'none';
+                span.style.color = '';
+            }
+        }
+
+        // Export Learning Plan Function
+        function exportPlan(topic, button) {
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+
+            try {
+                // Find the plan card in the chat
+                const planCards = document.querySelectorAll('#chat-box .bg-white.border');
+                const lastPlanCard = planCards[planCards.length - 1];
+
+                if (!lastPlanCard) {
+                    throw new Error('No plan found to export');
+                }
+
+                // Extract plan content
+                const planContent = lastPlanCard.innerText;
+
+                // Create markdown content
+                const markdownContent = `# Learning Plan: ${topic}\n\n${planContent}`;
+
+                // Create blob and download
+                const blob = new Blob([markdownContent], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Learning_Plan_${topic.replace(/\s+/g, '_')}.md`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                button.innerHTML = originalText;
+                addMessage("bot", `✅ Successfully exported your learning plan for "${topic}"!`);
+
+            } catch (error) {
+                console.error('Export error:', error);
+                button.innerHTML = originalText;
+                addMessage("bot", "❌ Error exporting plan. Please try again.");
+            }
+        }
+
+        // MODIFIED: Quiz button only for roadmaps
+        function renderActionButtons(topic) {
+            // Only show quiz button if we have a valid learning topic
+            if (!topic || topic.toLowerCase().includes("hello") || topic.toLowerCase().includes("hi ")) {
+                return; // Don't show quiz for greetings
+            }
+
+            const safeTopic = topic ? topic.replace(/'/g, "\\'") : "General";
+            const chatBox = document.getElementById("chat-box");
+            const div = document.createElement("div");
+            div.className = "flex flex-wrap gap-3 mt-4 ml-2 fade-in";
+            div.innerHTML = `<button onclick="handleQuizClick(this, '${safeTopic}')" class="bg-white text-purple-600 px-5 py-2.5 rounded-full text-sm font-semibold border border-purple-200 shadow-sm transition hover:bg-purple-50">Take a Quiz</button>`;
             chatBox.appendChild(div);
             scrollToBottom();
         }
@@ -348,16 +518,6 @@
                  html += `<div class="mb-6"><p class="font-bold mb-2">${idx+1}. ${q.question}</p><div class="grid gap-2">${q.options.map(o=>`<div class="bg-gray-800 p-2 rounded text-sm hover:bg-gray-700 cursor-pointer">${o}</div>`).join('')}</div><details class="mt-2 text-xs text-green-400 cursor-pointer"><summary>Answer</summary>${q.correct_answer}</details></div>`;
             });
             div.innerHTML = html;
-            chatBox.appendChild(div);
-            scrollToBottom();
-        }
-
-        function renderActionButtons(topic) {
-            const safeTopic = topic ? topic.replace(/'/g, "\\'") : "General";
-            const chatBox = document.getElementById("chat-box");
-            const div = document.createElement("div");
-            div.className = "flex flex-wrap gap-3 mt-4 ml-2 fade-in";
-            div.innerHTML = `<button onclick="handleQuizClick(this, '${safeTopic}')" class="bg-white text-purple-600 px-5 py-2.5 rounded-full text-sm font-semibold border border-purple-200 shadow-sm transition hover:bg-purple-50">Take a Quiz</button>`;
             chatBox.appendChild(div);
             scrollToBottom();
         }
